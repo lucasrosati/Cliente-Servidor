@@ -3,13 +3,23 @@ import random
 
 def introduzir_erro(mensagem, probabilidade_erro=0.1):
     """
-    Introduz um erro na mensagem com uma probabilidade especificada.
+    Introduz um erro no conteúdo da mensagem, preservando o tipo e o número de sequência.
     """
-    if random.random() < probabilidade_erro:
-        # Introduz erro mudando um caractere aleatório na mensagem
-        pos = random.randint(0, len(mensagem) - 1)
-        mensagem = mensagem[:pos] + '?' + mensagem[pos + 1:]
-    return mensagem
+    partes = mensagem.split(":")
+    if len(partes) >= 2:
+        tipo = partes[0]
+        numero_sequencia = partes[1]
+
+        # Introduz erro no conteúdo, se houver
+        if len(partes) > 2:
+            conteudo = partes[2]
+            conteudo_com_erro = ''.join(random.choice('!@#$%?') if random.random() < probabilidade_erro else c for c in conteudo)
+            partes[2] = conteudo_com_erro
+        mensagem_com_erro = ":".join(partes)
+    else:
+        mensagem_com_erro = mensagem  # Retorna a mensagem sem alterações se o formato estiver incorreto
+    
+    return mensagem_com_erro
 
 def simular_perda():
     """

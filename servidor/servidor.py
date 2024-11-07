@@ -5,13 +5,13 @@ from protocolo_servidor import ProtocoloServidor
 from simulador_erros import introduzir_erro_ack, simular_perda_ack
 
 def iniciar_servidor():
-    host = '127.0.0.1'  # localhost
+    host = '127.0.0.1'
     porta = 12346
-    modo_retransmissao = "Selective Repeat"  # Pode ser "Go-Back-N" ou "Selective Repeat"
+    modo_retransmissao = "Selective Repeat"
+    confirmacao_em_grupo = True  # Ativa a confirmação em grupo
 
-    # Criação do socket do servidor com a opção SO_REUSEADDR
     servidor_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    servidor_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Permite reutilizar a porta imediatamente
+    servidor_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     try:
         servidor_socket.bind((host, porta))
@@ -20,7 +20,7 @@ def iniciar_servidor():
 
         protocolo = ProtocoloServidor()
         numero_sequencia_esperado = 0
-        janela_recebida = {}  # Armazena pacotes fora de ordem para o modo Selective Repeat
+        janela_recebida = {}
 
         while True:
             cliente_socket, endereco = servidor_socket.accept()
@@ -35,38 +35,36 @@ def iniciar_servidor():
 
                     tipo, seq, conteudo = protocolo.resposta_receber(dados)
 
-                    if modo_retransmissao == "Go-Back-N":
-                        # No modo Go-Back-N, só aceita o pacote se estiver na sequência exata
+                    if confirmacao_em_grupo:
                         if seq == numero_sequencia_esperado:
-                            resposta = protocolo.resposta_enviar("ACK", seq)
+                            inicio = numero_sequencia_esperado
                             numero_sequencia_esperado += 1
-                        else:
-                            resposta = protocolo.resposta_enviar("NAK", seq)
-                            print("Número de sequência fora da janela, enviando NAK.")
-
-                    elif modo_retransmissao == "Selective Repeat":
-                        # No modo Selective Repeat, aceita pacotes fora de ordem e armazena até o número esperado
-                        if seq == numero_sequencia_esperado:
-                            resposta = protocolo.resposta_enviar("ACK", seq)
-                            numero_sequencia_esperado += 1
-                            # Envia ACKs para qualquer pacote armazenado em ordem
                             while numero_sequencia_esperado in janela_recebida:
                                 janela_recebida.pop(numero_sequencia_esperado)
                                 numero_sequencia_esperado += 1
-                        elif seq > numero_sequencia_esperado:
-                            resposta = protocolo.resposta_enviar("ACK", seq)
-                            janela_recebida[seq] = conteudo  # Armazena pacotes fora de ordem
+                            fim = numero_sequencia_esperado - 1
+                            
+                            # Envia ACK em grupo apenas se houver mais de um pacote no intervalo
+                            if fim > inicio:
+                                resposta = protocolo.resposta_enviar("ACK", f"{inicio}-{fim}")
+                            else:
+                                resposta = protocolo.resposta_enviar("ACK", f"{inicio}")
                         else:
-                            # Se o pacote estiver fora da janela de repetição, envia NAK
+                            resposta = protocolo.resposta_enviar("NAK", seq)
+                            print("Número de sequência fora da janela, enviando NAK.")
+                    else:
+                        # Modo padrão de confirmação individual
+                        if seq == numero_sequencia_esperado:
+                            resposta = protocolo.resposta_enviar("ACK", seq)
+                            numero_sequencia_esperado += 1
+                        else:
                             resposta = protocolo.resposta_enviar("NAK", seq)
                             print("Número de sequência fora da janela, enviando NAK.")
 
-                    # Simula perda de ACK
                     if simular_perda_ack():
                         print("Simulando perda de ACK. Nenhuma confirmação enviada.")
                         continue
 
-                    # Introduz erro na resposta ACK/NAK
                     resposta_com_erro = introduzir_erro_ack(resposta)
                     cliente_socket.send(resposta_com_erro.encode())
                     print(f"Enviado para o cliente: {resposta_com_erro}")
@@ -76,7 +74,7 @@ def iniciar_servidor():
                 print(f"Conexão com {endereco} encerrada")
 
     finally:
-        servidor_socket.close()  # Garante que o socket do servidor é fechado ao encerrar
+        servidor_socket.close()
         print("Socket do servidor fechado")
 
 if __name__ == "__main__":

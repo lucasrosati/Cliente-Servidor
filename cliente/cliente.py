@@ -1,4 +1,3 @@
-# cliente.py
 import socket
 import threading
 import time
@@ -20,6 +19,30 @@ class Cliente:
         self.protocolo = ProtocoloCliente()
         self.ack_recebido = {}  # Dicionário para armazenar a confirmação de pacotes
         print(f"Conectado ao servidor em {HOST}:{PORT}")
+        
+        if self.realizar_handshake():
+            print("Handshake realizado com sucesso.")
+        else:
+            print("Handshake falhou.")
+            self.socket.close()
+
+    def realizar_handshake(self):
+        try:
+            # Envia o pedido de conexão "SYN"
+            self.socket.sendall("SYN".encode())
+            resposta = self.socket.recv(1024).decode()
+            
+            # Espera "SYN-ACK" do servidor
+            if resposta == "SYN-ACK":
+                # Envia confirmação "ACK"
+                self.socket.sendall("ACK".encode())
+                return True
+            else:
+                print("Falha no handshake: resposta inesperada")
+                return False
+        except Exception as e:
+            print(f"Erro durante o handshake: {e}")
+            return False
 
     def enviar_pacote(self, numero_sequencia, conteudo):
         mensagem = self.protocolo.mensagem_enviar("SEND", conteudo, numero_sequencia)

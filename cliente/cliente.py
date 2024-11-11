@@ -80,7 +80,7 @@ class Cliente:
         thread_receber_ack.start()
 
         # Envia pacotes de dados sequencialmente
-        for i in range(50):
+        for i in range(50): # Envio de pacotes de forma sequencial (unitária ou em rajada)
             if i not in self.ack_recebido:
                 self.enviar_pacote(i, f"Pacote {i}")
                 time.sleep(0.5)  # Intervalo entre envios para facilitar visualização

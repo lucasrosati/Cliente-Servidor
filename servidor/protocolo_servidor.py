@@ -1,27 +1,18 @@
-# servidor/protocolo_servidor.py
-
+# protocolo_servidor.py
 class ProtocoloServidor:
-    def __init__(self):
-        self.respostas = {
-            "ACK": "ACK",
-            "NAK": "NAK",
-            "ACK_BATCH": "ACK_BATCH"
-        }
+    def mensagem_enviar(self, tipo, numero_sequencia, conteudo=""):
+        """
+        Formata uma mensagem para envio ao cliente.
+        """
+        return f"{tipo}:{numero_sequencia}:{conteudo}"
 
-    def resposta_enviar(self, tipo, numero_sequencia=0, conteudo=""):
+    def mensagem_receber(self, mensagem):
         """
-        Retorna uma resposta formatada para envio ao cliente, incluindo número de sequência.
+        Processa a mensagem recebida do cliente e retorna o tipo, número de sequência e conteúdo.
         """
-        if tipo in self.respostas:
-            return f"{self.respostas[tipo]}:{numero_sequencia}:{conteudo}"
-        else:
-            raise ValueError("Tipo de resposta não suportado")
-
-    def resposta_receber(self, resposta):
-        """
-        Processa a resposta recebida do cliente e retorna o tipo, número de sequência e conteúdo.
-        """
-        partes = resposta.split(":")
+        partes = mensagem.split(":")
+        if len(partes) < 2:
+            raise ValueError("Mensagem recebida em formato incorreto.")
         tipo = partes[0]
         numero_sequencia = int(partes[1])
         conteudo = partes[2] if len(partes) > 2 else ""

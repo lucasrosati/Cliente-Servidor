@@ -1,87 +1,70 @@
 import socket
 import threading
-from protocolo_servidor import ProtocoloServidor
-from simulador_erros import introduzir_erro_ack, simular_perda_ack
 
-HOST = '127.0.0.1'
-PORT = 12346
+class Servidor:
+    def __init__(self, host, port, protocolo, cumulativo):
+        self.host = host
+        self.port = port
+        self.protocolo = protocolo
+        self.cumulativo = cumulativo
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.bind((self.host, self.port))
+        self.socket.listen(5)
+        print(f"Servidor iniciado em {self.host}:{self.port}")
 
-protocolo = ProtocoloServidor()
+    def calcular_checksum(self, mensagem):
+        total = 0
+        for char in mensagem:
+            total += ord(char)
+            total = total ^ (total << 1) & 0xFFFF  # XOR para evitar inversão simples
+        return total & 0xFFFF  # Limita ao intervalo de 16 bits
 
-def verificar_integridade(conteudo):
-    caracteres_permitidos = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 "
-    for caractere in conteudo:
-        if caractere not in caracteres_permitidos:
-            return False
-    return True
-
-def processar_pacote(mensagem, cliente_socket):
-    try:
-        tipo, numero_sequencia, conteudo = mensagem.split(":", 2)
-        numero_sequencia = int(numero_sequencia)
-        
-        if not verificar_integridade(conteudo):
-            print(f"Erro de integridade detectado no pacote {numero_sequencia}. Enviando NAK.")
-            resposta = protocolo.mensagem_enviar("NAK", numero_sequencia)
-            cliente_socket.sendall(resposta.encode())
-            return
-
-        resposta = protocolo.mensagem_enviar("ACK", numero_sequencia)
-        
-        if not simular_perda_ack():
-            cliente_socket.sendall(resposta.encode())
-            print(f"Enviado para o cliente: {resposta}")
-        else:
-            print(f"Simulando perda de ACK para o pacote {numero_sequencia}.")
-
-    except ValueError:
-        print(f"Erro ao processar o pacote: o conteúdo '{mensagem}' não está no formato esperado.")
-        resposta = "ERRO_FORMATO"
-        cliente_socket.sendall(resposta.encode())
-
-def manipular_cliente(conexao, endereco):
-    print(f"Conexão estabelecida com {endereco}")
-
-    if conexao.recv(1024).decode() == "SYN":
-        conexao.sendall("SYN-ACK".encode())
-        if conexao.recv(1024).decode() == "ACK":
-            print("Handshake realizado com sucesso.")
-        else:
-            print("Falha no handshake com o cliente.")
-            conexao.close()
-            return
-    else:
-        print("Falha no handshake com o cliente.")
-        conexao.close()
-        return
-
-    try:
+    def receber_dados(self, conn):
         while True:
-            mensagem = conexao.recv(1024).decode()
-            if not mensagem:
+            try:
+                data = conn.recv(1024).decode()
+                if not data:
+                    break
+
+                partes = data.strip().split(":")
+                if len(partes) != 4:
+                    print(f"Dados recebidos em formato incorreto: {data.strip()}")
+                    continue
+
+                comando, seq_num, conteudo, checksum_recebido = partes
+                checksum_calculado = self.calcular_checksum(conteudo)
+
+                if int(checksum_recebido) == checksum_calculado:
+                    print(f"Recebido {comando}:{seq_num}:{conteudo} - Checksum Calculado: {checksum_calculado} - Válido")
+                    resposta = f"ACK:{seq_num}\n"
+                else:
+                    print(f"Recebido {comando}:{seq_num}:{conteudo} - Checksum Calculado: {checksum_calculado} - Inválido")
+                    resposta = f"NAK:{seq_num}\n"
+                
+                conn.sendall(resposta.encode())
+                print(f"Enviado: {resposta.strip()}")
+            except Exception as e:
+                print(f"Erro na comunicação: {e}")
                 break
-            processar_pacote(mensagem, conexao)
-    except Exception as e:
-        print(f"Erro ao comunicar com o cliente {endereco}: {e}")
-    finally:
-        print(f"Conexão com {endereco} encerrada.")
-        conexao.close()
+        conn.close()
+        print("Conexão encerrada pelo cliente.")
 
-def iniciar_servidor():
-    servidor_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    servidor_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Configuração para reutilizar a porta
-    servidor_socket.bind((HOST, PORT))
-    servidor_socket.listen()
-    print(f"Servidor iniciado em {HOST}:{PORT} no modo Selective Repeat")
-
-    try:
+    def iniciar(self):
+        print("Aguardando conexões...")
         while True:
-            conexao, endereco = servidor_socket.accept()
-            threading.Thread(target=manipular_cliente, args=(conexao, endereco)).start()
-    except KeyboardInterrupt:
-        print("Servidor encerrado.")
-    finally:
-        servidor_socket.close()
+            conn, addr = self.socket.accept()
+            print(f"Conexão com {addr} estabelecida.")
+            client_thread = threading.Thread(target=self.receber_dados, args=(conn,))
+            client_thread.daemon = True
+            client_thread.start()
 
-if __name__ == "__main__":
-    iniciar_servidor()
+def menu_servidor():
+    host = "127.0.0.1"
+    port = int(input("Digite a porta do servidor (12346 por padrão): ") or 12346)
+    protocolo = input("Escolha o protocolo (SR para Selective Repeat, GBN para Go-Back-N): ").lower()
+    cumulativo = input("Deseja confirmar pacotes cumulativamente? (S/N): ").lower() == "s"
+    
+    servidor = Servidor(host, port, protocolo, cumulativo)
+    servidor.iniciar()
+
+menu_servidor()

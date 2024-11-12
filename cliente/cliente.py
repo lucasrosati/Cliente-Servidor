@@ -1,94 +1,108 @@
 import socket
 import threading
+import random
+import sys
+import os
 import time
-from protocolo_cliente import ProtocoloCliente
-from simulador_erros import introduzir_erro, simular_perda
 
-HOST = '127.0.0.1'
-PORT = 12346
-TEMPO_TIMEOUT = 2  # Timeout para retransmissão de pacotes
-
-# Lista de pacotes específicos para introduzir erros
-pacotes_com_erro = [10, 15, 20]  # Defina aqui os números de sequência dos pacotes que terão erro
-
-# Classe de cliente
 class Cliente:
-    def __init__(self):
+    def __init__(self, host, port, protocolo, modo_envio, probabilidade_erro, tamanho_janela):
+        self.host = host
+        self.port = port
+        self.protocolo = protocolo
+        self.modo_envio = modo_envio
+        self.prob_erro = probabilidade_erro
+        self.tamanho_janela = tamanho_janela
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.connect((HOST, PORT))
-        self.protocolo = ProtocoloCliente()
-        self.ack_recebido = {}  # Dicionário para armazenar a confirmação de pacotes
-        print(f"Conectado ao servidor em {HOST}:{PORT}")
-        
-        if self.realizar_handshake():
-            print("Handshake realizado com sucesso.")
-        else:
-            print("Handshake falhou.")
-            self.socket.close()
+        self.socket.connect((self.host, self.port))
+        self.timeout = 2
+        self.lock = threading.Lock()
+        self.dados = []
+        self.acks = set()
+        self.carregar_dados()
 
-    def realizar_handshake(self):
+    def carregar_dados(self):
         try:
-            # Envia o pedido de conexão "SYN"
-            self.socket.sendall("SYN".encode())
-            resposta = self.socket.recv(1024).decode()
-            
-            # Espera "SYN-ACK" do servidor
-            if resposta == "SYN-ACK":
-                # Envia confirmação "ACK"
-                self.socket.sendall("ACK".encode())
-                return True
-            else:
-                print("Falha no handshake: resposta inesperada")
-                return False
-        except Exception as e:
-            print(f"Erro durante o handshake: {e}")
-            return False
+            path = os.path.join(sys.path[0], "carros.txt")
+            with open(path, "r") as file:
+                self.dados = [carro.strip() for carro in file.read().split(",")]
+        except FileNotFoundError:
+            print("Arquivo carros.txt não encontrado.")
 
-    def enviar_pacote(self, numero_sequencia, conteudo):
-        mensagem = self.protocolo.mensagem_enviar("SEND", conteudo, numero_sequencia)
+    def calcular_checksum(self, mensagem):
+        total = 0
+        for char in mensagem:
+            total += ord(char)
+            total = total ^ (total << 1) & 0xFFFF  # XOR para evitar inversão simples
+        return total & 0xFFFF  # Limita ao intervalo de 16 bits
 
-        # Verifica se o pacote está na lista de pacotes com erro
-        if numero_sequencia in pacotes_com_erro:
-            mensagem = introduzir_erro(mensagem)  # Introduz erro específico no pacote
-
-        # Simula perda de pacote
-        if not simular_perda():
-            self.socket.sendall(mensagem.encode())
-            print(f"Enviado para o servidor: {mensagem}")
+    def enviar_pacote(self, pacote, seq_num):
+        checksum = self.calcular_checksum(pacote)
+        if random.random() < self.prob_erro:
+            pacote = f"ERR:{seq_num}:{pacote[::-1]}:{checksum}\n"
+            print(f"Simulando falha no pacote {seq_num}")
         else:
-            print(f"Pacote {numero_sequencia} simulado como perdido.")
+            pacote = f"SEND:{seq_num}:{pacote}:{checksum}\n"
+        try:
+            self.socket.sendall(pacote.encode())
+            print(f"Enviado: {pacote.strip()}")
+        except Exception as e:
+            print(f"Erro ao enviar pacote {seq_num}: {e}")
 
-    def receber_ack(self):
-        while True:
+    def iniciar_temporizador(self, seq_num, pacote):
+        timer_thread = threading.Thread(target=self.temporizador, args=(seq_num, pacote))
+        timer_thread.daemon = True
+        timer_thread.start()
+
+    def temporizador(self, seq_num, pacote):
+        time.sleep(self.timeout)
+        with self.lock:
+            if seq_num not in self.acks:
+                print(f"Timeout para pacote {seq_num}, retransmitindo...")
+                self.enviar_pacote(pacote, seq_num)
+                self.iniciar_temporizador(seq_num, pacote)
+
+    def receber_acks(self):
+        while len(self.acks) < self.tamanho_janela:
             try:
-                resposta = self.socket.recv(1024).decode()
-                if resposta:
-                    tipo, seq, conteudo = self.protocolo.mensagem_receber(resposta)
-                    print(f"Resposta do servidor: Tipo={tipo}, Número de Sequência={seq}, Conteúdo={conteudo}")
-                    if tipo == "ACK":
-                        self.ack_recebido[int(seq)] = True
-                    elif tipo == "NAK":
-                        print(f"Recebido NAK para o pacote {seq}. Retransmitindo...")
-                        self.enviar_pacote(int(seq), f"Pacote {seq}")
+                resposta = self.socket.recv(1024).decode().strip()
+                if resposta.startswith("ACK:"):
+                    ack_num = int(resposta.split(":")[1])
+                    with self.lock:
+                        if ack_num not in self.acks:
+                            self.acks.add(ack_num)
+                            print(f"Recebido ACK para pacote {ack_num}")
+                elif resposta.startswith("NAK:"):
+                    nak_num = int(resposta.split(":")[1])
+                    print(f"Recebido NAK para pacote {nak_num}, retransmitindo...")
+                    self.enviar_pacote(self.dados[nak_num], nak_num)
             except Exception as e:
-                print(f"Erro ao receber ACK: {e}")
+                print(f"Erro ao receber ACK/NAK: {e}")
                 break
 
+    def enviar_dados(self):
+        threading.Thread(target=self.receber_acks, daemon=True).start()
+        for seq_num in range(min(self.tamanho_janela, len(self.dados))):
+            pacote = self.dados[seq_num]
+            self.enviar_pacote(pacote, seq_num)
+            time.sleep(0.1)  # Pausa para desacelerar a rajada
+
     def iniciar(self):
-        # Inicia a thread para receber ACKs
-        thread_receber_ack = threading.Thread(target=self.receber_ack)
-        thread_receber_ack.start()
+        self.enviar_dados()
 
-        # Envia pacotes de dados sequencialmente
-        for i in range(50): # Envio de pacotes de forma sequencial (unitária ou em rajada)
-            if i not in self.ack_recebido:
-                self.enviar_pacote(i, f"Pacote {i}")
-                time.sleep(0.5)  # Intervalo entre envios para facilitar visualização
-
-        # Aguarda a finalização da thread de recepção de ACKs
-        thread_receber_ack.join()
+    def fechar_conexao(self):
         self.socket.close()
+        print("Conexão encerrada com o servidor.")
 
-if __name__ == "__main__":
-    cliente = Cliente()
+def menu_cliente():
+    host = input("Digite o endereço do servidor (127.0.0.1 por padrão): ") or "127.0.0.1"
+    port = int(input("Digite a porta do servidor (12346 por padrão): ") or 12346)
+    protocolo = input("Escolha o protocolo (SR para Selective Repeat, GBN para Go-Back-N): ").lower()
+    modo_envio = input("Escolha o modo de envio (unico ou rajada): ").lower()
+    probabilidade_erro = float(input("Digite a probabilidade de erro para gerar NAKs (ex: 0.1): "))
+    tamanho_janela = int(input("Digite o número total de mensagens a serem enviadas: "))
+    
+    cliente = Cliente(host, port, protocolo, modo_envio, probabilidade_erro, tamanho_janela)
     cliente.iniciar()
+
+menu_cliente()

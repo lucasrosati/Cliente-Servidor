@@ -1,3 +1,4 @@
+
 # Protocolo de Comunicação para Aplicação Cliente-Servidor
 
 Este documento descreve o protocolo de aplicação utilizado na comunicação entre o cliente e o servidor.

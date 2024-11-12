@@ -3,7 +3,7 @@
 
 ## Descrição
 
-Este projeto é uma aplicação cliente-servidor em Python que implementa um protocolo de comunicação confiável na camada de aplicação, considerando um canal de comunicação com perdas e erros simulados. A aplicação utiliza um sistema de janela deslizante para controle de fluxo e congestionamento, além de temporizadores para garantir a retransmissão de pacotes perdidos. 
+Este projeto é uma aplicação cliente-servidor em Python que implementa um protocolo de comunicação confiável na camada de aplicação, considerando um canal de comunicação com perdas e erros simulados. A aplicação utiliza um sistema de janela deslizante para controle de fluxo e congestionamento, além de temporizadores para garantir a retransmissão de pacotes perdidos.
 
 O servidor suporta dois modos de controle de retransmissão: **Go-Back-N** e **Selective Repeat** (Repetição Seletiva), permitindo maior flexibilidade e adaptação a diferentes condições de rede.
 

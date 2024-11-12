@@ -9,15 +9,15 @@ class Servidor:
         self.protocolo = protocolo
         self.cumulativo = cumulativo
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # Permite reutilizar o endereço
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((self.host, self.port))
         self.socket.listen(5)
         print(f"Servidor iniciado em {self.host}:{self.port}")
-        self.prob_erro_ack = 0.1  # Probabilidade de erro nos ACKs
-        self.tamanho_janela_recepcao = 5  # Tamanho inicial da janela de recepção
-        self.seq_esperado = 1  # Número de sequência esperado inicia em 1
-        self.mensagens_recebidas = {}  # Armazena mensagens recebidas
+        self.prob_erro_ack = 0.1
+        self.tamanho_janela_recepcao = 5
+        self.seq_esperado = 1
+        self.mensagens_recebidas = {}
+        self.pacotes_nao_confirmados = {}
 
     def calcular_checksum(self, mensagem):
         total = 0
@@ -31,7 +31,6 @@ class Servidor:
         checksum = self.calcular_checksum(ack_data)
         ack = f"{ack_data}:{checksum}\n"
         if random.random() < self.prob_erro_ack:
-            # Simula erro no ACK
             ack_corrompido = f"{ack_data}CORROMPIDO\n"
             conn.sendall(ack_corrompido.encode())
             print(f"Enviado ACK corrompido para pacote {seq_num}")
@@ -59,9 +58,7 @@ class Servidor:
                     line, buffer = buffer.split('\n', 1)
                     partes = line.strip().split(":")
                     if len(partes) >= 3:
-                        # Pode ser um pacote de dados ou uma confirmação
                         if partes[0] in ["SEND", "ERR"]:
-                            # Processa pacotes de dados
                             if len(partes) != 4:
                                 print(f"Dados recebidos em formato incorreto: {line.strip()}")
                                 continue
@@ -73,44 +70,29 @@ class Servidor:
 
                             print(f"Recebido {comando}:{seq_num}:{conteudo} (Checksum recebido: {checksum_recebido}, Checksum calculado: {checksum_calculado})")
 
-                            # Verifica integridade do pacote
                             if checksum_recebido != checksum_calculado:
                                 print(f"Erro de checksum no pacote {seq_num}")
                                 self.enviar_nak(conn, seq_num)
-                            elif seq_num == self.seq_esperado:
-                                # Pacote esperado, processa e envia ACK
+                            elif self.protocolo == 'sr' or seq_num == self.seq_esperado:
                                 self.mensagens_recebidas[seq_num] = conteudo
                                 self.enviar_ack(conn, seq_num)
-                                self.seq_esperado += 1
-                            elif seq_num > self.seq_esperado:
-                                # Pacote futuro, armazena em buffer (para SR)
-                                if self.protocolo == 'sr':
-                                    self.mensagens_recebidas[seq_num] = conteudo
-                                    self.enviar_ack(conn, seq_num)
-                                else:
-                                    # No GBN, reenviar NAK para pacote esperado
-                                    self.enviar_nak(conn, self.seq_esperado)
+                                if seq_num == self.seq_esperado:
+                                    self.seq_esperado += 1
                             else:
-                                # Pacote duplicado ou já recebido
-                                self.enviar_ack(conn, seq_num)
+                                self.enviar_nak(conn, self.seq_esperado)
                         elif partes[0] in ["ACK_CONFIRM", "NAK_CONFIRM"]:
-                            # Processa confirmações de ACK/NAK do cliente
                             if len(partes) != 3:
                                 print(f"Confirmação recebida em formato incorreto: {line.strip()}")
                                 continue
 
                             tipo_confirmacao, seq_num_str = partes[0], partes[1]
-                            checksum_recebido_str = partes[2]
-                            seq_num = int(seq_num_str)
-                            checksum_recebido = int(checksum_recebido_str)
-                            checksum_calculado = self.calcular_checksum(f"{tipo_confirmacao}:{seq_num}")
+                            checksum_recebido = int(partes[2])
+                            checksum_calculado = self.calcular_checksum(f"{tipo_confirmacao}:{seq_num_str}")
 
                             if checksum_recebido != checksum_calculado:
-                                print(f"Checksum incorreto na confirmação {tipo_confirmacao} para pacote {seq_num}")
+                                print(f"Checksum incorreto na confirmação {tipo_confirmacao} para pacote {seq_num_str}")
                             else:
-                                print(f"Recebida confirmação {tipo_confirmacao} para pacote {seq_num} (Checksum verificado)")
-
-                            # Aqui, você pode implementar lógica adicional conforme necessário
+                                print(f"Recebida confirmação {tipo_confirmacao} para pacote {seq_num_str} (Checksum verificado)")
                     else:
                         print(f"Mensagem recebida em formato desconhecido: {line.strip()}")
             except Exception as e:

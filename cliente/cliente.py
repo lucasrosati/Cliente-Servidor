@@ -22,12 +22,12 @@ class Cliente:
         self.dados = []
         self.acks = set()
         self.seq_enviados = set()
-        self.inicio_janela = 1  # Inicia em 1
+        self.inicio_janela = 1
         self.fim_janela = self.inicio_janela + self.tamanho_janela - 1
         self.carregar_dados()
-        self.cwnd = 1  # Janela de congestionamento
-        self.ssthresh = 8  # Limite de slow start
-        self.duplicated_acks = 0  # Contador de ACKs duplicados
+        self.cwnd = 1
+        self.ssthresh = 8
+        self.duplicated_acks = 0
 
     def carregar_dados(self):
         try:
@@ -53,10 +53,9 @@ class Cliente:
             print(f"Simulando falha no pacote {seq_num}")
         else:
             pacote = f"SEND:{seq_num}:{pacote}:{checksum}\n"
-        # Simulação de perda de pacote
         if random.random() < self.prob_erro:
             print(f"Simulando perda do pacote {seq_num}")
-            return  # Não envia o pacote
+            return
         try:
             self.socket.sendall(pacote.encode())
             print(f"Enviado: {pacote.strip()} (Checksum: {checksum})")
@@ -67,6 +66,10 @@ class Cliente:
         confirmacao = f"{tipo}_CONFIRM:{seq_num}"
         checksum = self.calcular_checksum(confirmacao)
         mensagem = f"{confirmacao}:{checksum}\n"
+        if random.random() < self.prob_erro:
+            mensagem = f"{confirmacao}CORROMPIDO\n"
+            print(f"Enviando {tipo}_CONFIRM corrompido para pacote {seq_num}")
+
         try:
             self.socket.sendall(mensagem.encode())
             print(f"Enviado {tipo}_CONFIRM para pacote {seq_num} (Checksum: {checksum})")
@@ -85,7 +88,6 @@ class Cliente:
                 print(f"Timeout para pacote {seq_num}, retransmitindo...")
                 self.enviar_pacote(pacote, seq_num)
                 self.iniciar_temporizador(seq_num, pacote)
-                # Ajuste da janela de congestionamento
                 self.ssthresh = max(self.cwnd // 2, 1)
                 self.cwnd = 1
                 self.duplicated_acks = 0
@@ -113,10 +115,10 @@ class Cliente:
                         checksum_calculado = self.calcular_checksum(f"{tipo}:{seq_num}")
                     except ValueError:
                         print(f"ACK/NAK corrompido recebido: {resposta}")
-                        continue  # Ignora ACK/NAK corrompido
+                        continue
                     if checksum_recebido != checksum_calculado:
                         print(f"Checksum incorreto para {tipo}:{seq_num}")
-                        continue  # Ignora ACK/NAK com checksum incorreto
+                        continue
                     with self.lock:
                         if tipo == "ACK":
                             if seq_num in self.acks:
@@ -130,21 +132,17 @@ class Cliente:
                                 self.acks.add(seq_num)
                                 print(f"Recebido ACK para pacote {seq_num}")
                                 self.duplicated_acks = 0
-                                # Ajuste da janela de congestionamento
                                 if self.cwnd < self.ssthresh:
-                                    self.cwnd += 1  # Slow Start
+                                    self.cwnd += 1
                                 else:
-                                    self.cwnd += 1 / self.cwnd  # Congestion Avoidance
-                                # Atualiza janela de envio
+                                    self.cwnd += 1 / self.cwnd
                                 self.inicio_janela = max(self.acks) + 1 if self.acks else 1
                                 self.fim_janela = self.inicio_janela + int(self.cwnd) - 1
-                            # Envia confirmação para o servidor
                             self.enviar_confirmacao("ACK", seq_num)
                         elif tipo == "NAK":
                             print(f"Recebido NAK para pacote {seq_num}, retransmitindo...")
                             self.enviar_pacote(self.dados[seq_num - 1], seq_num)
                             self.iniciar_temporizador(seq_num, self.dados[seq_num - 1])
-                            # Envia confirmação para o servidor
                             self.enviar_confirmacao("NAK", seq_num)
             except Exception as e:
                 print(f"Erro ao receber ACK/NAK: {e}")
@@ -158,7 +156,7 @@ class Cliente:
             with self.lock:
                 for seq_num in range(self.inicio_janela, min(self.fim_janela + 1, total_mensagens + 1)):
                     if seq_num not in self.seq_enviados:
-                        pacote = self.dados[seq_num - 1]  # Ajuste no índice
+                        pacote = self.dados[seq_num - 1]
                         self.enviar_pacote(pacote, seq_num)
                         self.seq_enviados.add(seq_num)
                         self.iniciar_temporizador(seq_num, pacote)

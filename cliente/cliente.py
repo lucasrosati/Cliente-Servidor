@@ -63,6 +63,16 @@ class Cliente:
         except Exception as e:
             print(f"Erro ao enviar pacote {seq_num}: {e}")
 
+    def enviar_confirmacao(self, tipo, seq_num):
+        confirmacao = f"{tipo}_CONFIRM:{seq_num}"
+        checksum = self.calcular_checksum(confirmacao)
+        mensagem = f"{confirmacao}:{checksum}\n"
+        try:
+            self.socket.sendall(mensagem.encode())
+            print(f"Enviado {tipo}_CONFIRM para pacote {seq_num} (Checksum: {checksum})")
+        except Exception as e:
+            print(f"Erro ao enviar confirmação para pacote {seq_num}: {e}")
+
     def iniciar_temporizador(self, seq_num, pacote):
         timer_thread = threading.Thread(target=self.temporizador, args=(seq_num, pacote))
         timer_thread.daemon = True
@@ -128,10 +138,14 @@ class Cliente:
                                 # Atualiza janela de envio
                                 self.inicio_janela = max(self.acks) + 1 if self.acks else 1
                                 self.fim_janela = self.inicio_janela + int(self.cwnd) - 1
+                            # Envia confirmação para o servidor
+                            self.enviar_confirmacao("ACK", seq_num)
                         elif tipo == "NAK":
                             print(f"Recebido NAK para pacote {seq_num}, retransmitindo...")
                             self.enviar_pacote(self.dados[seq_num - 1], seq_num)
                             self.iniciar_temporizador(seq_num, self.dados[seq_num - 1])
+                            # Envia confirmação para o servidor
+                            self.enviar_confirmacao("NAK", seq_num)
             except Exception as e:
                 print(f"Erro ao receber ACK/NAK: {e}")
                 break

@@ -9,10 +9,8 @@ class Servidor:
         self.protocolo = protocolo
         self.cumulativo = cumulativo
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        
-        # Adiciona esta linha para permitir reutilização do endereço
+        # Permite reutilizar o endereço
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        
         self.socket.bind((self.host, self.port))
         self.socket.listen(5)
         print(f"Servidor iniciado em {self.host}:{self.port}")
@@ -60,39 +58,61 @@ class Servidor:
                 while '\n' in buffer:
                     line, buffer = buffer.split('\n', 1)
                     partes = line.strip().split(":")
-                    if len(partes) != 4:
-                        print(f"Dados recebidos em formato incorreto: {line.strip()}")
-                        continue
+                    if len(partes) >= 3:
+                        # Pode ser um pacote de dados ou uma confirmação
+                        if partes[0] in ["SEND", "ERR"]:
+                            # Processa pacotes de dados
+                            if len(partes) != 4:
+                                print(f"Dados recebidos em formato incorreto: {line.strip()}")
+                                continue
 
-                    comando, seq_num_str, conteudo, checksum_recebido_str = partes
-                    seq_num = int(seq_num_str)
-                    checksum_recebido = int(checksum_recebido_str)
-                    checksum_calculado = self.calcular_checksum(conteudo)
+                            comando, seq_num_str, conteudo, checksum_recebido_str = partes
+                            seq_num = int(seq_num_str)
+                            checksum_recebido = int(checksum_recebido_str)
+                            checksum_calculado = self.calcular_checksum(conteudo)
 
-                    print(f"Recebido {comando}:{seq_num}:{conteudo} (Checksum recebido: {checksum_recebido}, Checksum calculado: {checksum_calculado})")
+                            print(f"Recebido {comando}:{seq_num}:{conteudo} (Checksum recebido: {checksum_recebido}, Checksum calculado: {checksum_calculado})")
 
-                    # Verifica integridade do pacote
-                    if checksum_recebido != checksum_calculado:
-                        print(f"Erro de checksum no pacote {seq_num}")
-                        self.enviar_nak(conn, seq_num)
-                    elif seq_num == self.seq_esperado:
-                        # Pacote esperado, processa e envia ACK
-                        self.mensagens_recebidas[seq_num] = conteudo
-                        self.enviar_ack(conn, seq_num)
-                        self.seq_esperado += 1
-                        # Atualiza janela de recepção
-                        self.tamanho_janela_recepcao += 1  # Simulação de ajuste dinâmico
-                    elif seq_num > self.seq_esperado:
-                        # Pacote futuro, armazena em buffer (para SR)
-                        if self.protocolo == 'sr':
-                            self.mensagens_recebidas[seq_num] = conteudo
-                            self.enviar_ack(conn, seq_num)
-                        else:
-                            # No GBN, reenviar NAK para pacote esperado
-                            self.enviar_nak(conn, self.seq_esperado)
+                            # Verifica integridade do pacote
+                            if checksum_recebido != checksum_calculado:
+                                print(f"Erro de checksum no pacote {seq_num}")
+                                self.enviar_nak(conn, seq_num)
+                            elif seq_num == self.seq_esperado:
+                                # Pacote esperado, processa e envia ACK
+                                self.mensagens_recebidas[seq_num] = conteudo
+                                self.enviar_ack(conn, seq_num)
+                                self.seq_esperado += 1
+                            elif seq_num > self.seq_esperado:
+                                # Pacote futuro, armazena em buffer (para SR)
+                                if self.protocolo == 'sr':
+                                    self.mensagens_recebidas[seq_num] = conteudo
+                                    self.enviar_ack(conn, seq_num)
+                                else:
+                                    # No GBN, reenviar NAK para pacote esperado
+                                    self.enviar_nak(conn, self.seq_esperado)
+                            else:
+                                # Pacote duplicado ou já recebido
+                                self.enviar_ack(conn, seq_num)
+                        elif partes[0] in ["ACK_CONFIRM", "NAK_CONFIRM"]:
+                            # Processa confirmações de ACK/NAK do cliente
+                            if len(partes) != 3:
+                                print(f"Confirmação recebida em formato incorreto: {line.strip()}")
+                                continue
+
+                            tipo_confirmacao, seq_num_str = partes[0], partes[1]
+                            checksum_recebido_str = partes[2]
+                            seq_num = int(seq_num_str)
+                            checksum_recebido = int(checksum_recebido_str)
+                            checksum_calculado = self.calcular_checksum(f"{tipo_confirmacao}:{seq_num}")
+
+                            if checksum_recebido != checksum_calculado:
+                                print(f"Checksum incorreto na confirmação {tipo_confirmacao} para pacote {seq_num}")
+                            else:
+                                print(f"Recebida confirmação {tipo_confirmacao} para pacote {seq_num} (Checksum verificado)")
+
+                            # Aqui, você pode implementar lógica adicional conforme necessário
                     else:
-                        # Pacote duplicado ou já recebido
-                        self.enviar_ack(conn, seq_num)
+                        print(f"Mensagem recebida em formato desconhecido: {line.strip()}")
             except Exception as e:
                 print(f"Erro na comunicação: {e}")
                 break
@@ -101,12 +121,18 @@ class Servidor:
 
     def iniciar(self):
         print("Aguardando conexões...")
-        while True:
-            conn, addr = self.socket.accept()
-            print(f"Conexão com {addr} estabelecida.")
-            client_thread = threading.Thread(target=self.receber_dados, args=(conn,))
-            client_thread.daemon = True
-            client_thread.start()
+        try:
+            while True:
+                conn, addr = self.socket.accept()
+                print(f"Conexão com {addr} estabelecida.")
+                client_thread = threading.Thread(target=self.receber_dados, args=(conn,))
+                client_thread.daemon = True
+                client_thread.start()
+        except KeyboardInterrupt:
+            print("\nServidor interrompido pelo usuário.")
+        finally:
+            self.socket.close()
+            print("Socket do servidor fechado.")
 
 def menu_servidor():
     host = "127.0.0.1"

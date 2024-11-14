@@ -2,6 +2,7 @@ import socket
 import threading
 import random
 
+
 class Servidor:
     def __init__(self, host, port, protocolo, cumulativo):
         self.host = host

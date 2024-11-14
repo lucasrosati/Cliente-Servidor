@@ -5,6 +5,8 @@ import sys
 import os
 import time
 
+sys.path.append('/Users/lucasrosati/Documents/projeto_cliente_servidor/comum')
+
 class Cliente:
     def __init__(self, host, port, protocolo, modo_envio, probabilidade_erro, tamanho_janela, num_mensagens):
         self.host = host

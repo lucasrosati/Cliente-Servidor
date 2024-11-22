@@ -15,7 +15,7 @@ class Servidor:
         self.seq_esperado = 1
         self.mensagens_recebidas = {}
         self.pacotes_fora_de_ordem = {}  # Armazena pacotes fora de ordem
-        self.janela_recepcao = list(range(1, self.tamanho_janela + 1))  # Janela dinâmica inicial
+        self.janela_recepcao = list(range(1, self.tamanho_janela + 1))  # Janela inicial
 
     def calcular_checksum(self, mensagem):
         return sum(ord(c) for c in mensagem) & 0xFFFF
@@ -32,23 +32,23 @@ class Servidor:
         checksum = self.calcular_checksum(ack_data)
         ack = f"{ack_data}:{checksum}\n"
         conn.sendall(ack.encode())
-        print(f"Enviado: {ack.strip()} (Checksum: {checksum})")
+        print(f"Enviado: {ack.strip()}")
 
     def enviar_nak(self, conn, seq_num):
         nak_data = f"NAK:{seq_num}"
         checksum = self.calcular_checksum(nak_data)
         nak = f"{nak_data}:{checksum}\n"
         conn.sendall(nak.encode())
-        print(f"Enviado: {nak.strip()} (Checksum: {checksum})")
+        print(f"Enviado: {nak.strip()}")
 
     def processar_pacote(self, conn, seq_num, conteudo, checksum_recebido):
         checksum_calculado = self.calcular_checksum(conteudo)
 
         if checksum_recebido != checksum_calculado:
             print(f"Erro de checksum no pacote {seq_num}: {conteudo}")
-            self.enviar_nak(conn, seq_num)
+            if seq_num not in self.mensagens_recebidas:
+                self.enviar_nak(conn, seq_num)
         elif seq_num == self.seq_esperado:
-            # Pacote na ordem esperada
             print(f"Pacote {seq_num} confirmado: {conteudo}")
             self.mensagens_recebidas[seq_num] = conteudo
             self.enviar_ack(conn, seq_num)
@@ -62,12 +62,10 @@ class Servidor:
                 self.enviar_ack(conn, self.seq_esperado)
                 self.atualizar_janela()
         elif seq_num in self.janela_recepcao:
-            # Pacote fora de ordem dentro da janela
             print(f"Pacote {seq_num} fora de ordem: {conteudo}. Dentro da janela: {self.janela_recepcao}")
             self.pacotes_fora_de_ordem[seq_num] = conteudo
             self.enviar_nak(conn, self.seq_esperado)
         else:
-            # Pacote fora da janela ou já recebido
             if seq_num < self.seq_esperado:
                 print(f"Pacote {seq_num} já recebido anteriormente: {conteudo}")
                 self.enviar_ack(conn, seq_num)
@@ -75,8 +73,45 @@ class Servidor:
                 print(f"Pacote {seq_num} fora da janela de recepção: {conteudo}. Esperado: {self.janela_recepcao}")
                 self.enviar_nak(conn, seq_num)
 
+    def extrair_handshake(self, handshake_msg):
+        """Processa a mensagem de handshake e retorna os valores de protocolo e janela."""
+        try:
+            partes = handshake_msg.split(":")
+            protocolo = partes[2]
+            janela = partes[4]
+            return protocolo, int(janela)
+        except IndexError:
+            print("Erro ao processar a mensagem de handshake.")
+            return None, None
+
     def receber_dados(self, conn):
         buffer = ""
+        
+        # Validação do Handshake
+        try:
+            handshake_msg = conn.recv(1024).decode().strip()
+            if handshake_msg.startswith("HANDSHAKE:"):
+                print(f"Handshake recebido: {handshake_msg}")
+                protocolo, janela = self.extrair_handshake(handshake_msg)
+                
+                if protocolo == self.protocolo and janela == self.tamanho_janela:
+                    ack_handshake = f"ACK_HANDSHAKE:PROTOCOL:{self.protocolo}:WINDOW:{self.tamanho_janela}\n"
+                    conn.sendall(ack_handshake.encode())
+                    print(f"Handshake confirmado: {ack_handshake.strip()}")
+                else:
+                    print("Falha no handshake. Encerrando conexão.")
+                    conn.close()
+                    return
+            else:
+                print("Mensagem inválida no handshake. Encerrando conexão.")
+                conn.close()
+                return
+        except Exception as e:
+            print(f"Erro durante o handshake: {e}")
+            conn.close()
+            return
+
+        # Processamento dos pacotes
         while True:
             try:
                 data = conn.recv(1024).decode()
@@ -94,7 +129,7 @@ class Servidor:
                         checksum_recebido = int(checksum_recebido_str)
 
                         print(f"Recebido {comando}:{seq_num}:{conteudo} "
-                            f"(Checksum recebido: {checksum_recebido})")
+                              f"(Checksum recebido: {checksum_recebido})")
 
                         if comando == "SEND":
                             self.processar_pacote(conn, seq_num, conteudo, checksum_recebido)
@@ -110,8 +145,7 @@ class Servidor:
                 print(f"Erro na comunicação: {e}")
                 break
         conn.close()
-    print("Conexão encerrada pelo cliente.")
-
+        print("Conexão encerrada pelo cliente.")
 
     def iniciar(self):
         print("Aguardando conexões...")

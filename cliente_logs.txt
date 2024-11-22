@@ -1,0 +1,22 @@
+Enviando pacotes em rajada...
+Enviado: SEND:1:Mensagem 1:894
+Enviado: SEND:2:Mensagem 2:895
+Enviado: SEND:3:Mensagem 3:896
+Enviado: SEND:4:Mensagem 4:897
+Enviado: SEND:5:Mensagem 5:898
+Enviado: SEND:6:Mensagem 6:899
+Enviado: SEND:7:Mensagem 7:900
+Enviado: SEND:8:Mensagem 8:901
+Enviado: SEND:9:Mensagem 9:902
+Enviado: SEND:10:Mensagem 10:942
+Recebido ACK para pacote 1
+Recebido ACK para pacote 2
+Recebido ACK para pacote 3
+Recebido ACK para pacote 4
+Recebido ACK para pacote 5
+Recebido ACK para pacote 6
+Recebido ACK para pacote 7
+Recebido ACK para pacote 8
+Recebido ACK para pacote 9
+Recebido ACK para pacote 10
+Todos os pacotes foram confirmados. Encerrando...

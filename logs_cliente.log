@@ -1,0 +1,94 @@
+2024-11-22 19:16:56,657 - INFO - Handshake concluído: HANDSHAKE_OK:PROT:SR:WINDOW:5
+2024-11-22 19:16:56,658 - WARNING - Simulando falha no pacote 1
+2024-11-22 19:16:56,658 - INFO - Enviado: ERR:1:adnoH:490
+2024-11-22 19:16:56,658 - INFO - Enviado: SEND:2:Ferrari:715
+2024-11-22 19:16:56,658 - INFO - Enviado: SEND:3:Toyota:640
+2024-11-22 19:16:56,658 - INFO - Enviado: SEND:4:Ford:395
+2024-11-22 19:16:56,658 - WARNING - Simulando falha no pacote 5
+2024-11-22 19:16:56,658 - WARNING - Recebido NAK para pacote 1, retransmitindo...
+2024-11-22 19:16:56,659 - INFO - Enviado: ERR:5:telorvehC:940
+2024-11-22 19:16:56,659 - INFO - Enviado: SEND:1:Honda:490
+2024-11-22 19:16:56,659 - WARNING - Simulando falha no pacote 6
+2024-11-22 19:16:56,659 - WARNING - Recebido NAK para pacote 1, retransmitindo...
+2024-11-22 19:16:56,659 - INFO - Enviado: ERR:6:WMB:230
+2024-11-22 19:16:56,659 - INFO - Enviado: SEND:1:Honda:490
+2024-11-22 19:16:56,659 - INFO - Enviado: SEND:7:Mercedes:808
+2024-11-22 19:16:56,660 - WARNING - Simulando falha no pacote 8
+2024-11-22 19:16:56,660 - WARNING - Recebido NAK para pacote 1, retransmitindo...
+2024-11-22 19:16:56,660 - INFO - Enviado: ERR:8:iduA:387
+2024-11-22 19:16:56,660 - INFO - Enviado: SEND:1:Honda:490
+2024-11-22 19:16:56,661 - INFO - Enviado: SEND:9:Lamborghini:1132
+2024-11-22 19:16:56,661 - WARNING - Simulando falha no pacote 10
+2024-11-22 19:16:56,661 - WARNING - Recebido NAK para pacote 1, retransmitindo...
+2024-11-22 19:16:56,661 - INFO - Enviado: SEND:1:Honda:490
+2024-11-22 19:16:56,661 - INFO - Enviado: ERR:10:itaresaM:822
+2024-11-22 19:16:56,662 - WARNING - Recebido NAK para pacote 5, retransmitindo...
+2024-11-22 19:16:56,662 - WARNING - Simulando falha no pacote 5
+2024-11-22 19:16:56,662 - INFO - Enviado: ERR:5:telorvehC:940
+2024-11-22 19:16:56,662 - INFO - Recebido ACK para pacote 1
+2024-11-22 19:16:56,662 - INFO - Janela ajustada dinamicamente: 2
+2024-11-22 19:16:56,662 - INFO - Recebido ACK para pacote 2
+2024-11-22 19:16:56,662 - INFO - Janela ajustada dinamicamente: 3
+2024-11-22 19:16:56,662 - INFO - Recebido ACK para pacote 3
+2024-11-22 19:16:56,662 - INFO - Janela ajustada dinamicamente: 4
+2024-11-22 19:16:56,662 - INFO - Recebido ACK para pacote 4
+2024-11-22 19:16:56,663 - INFO - Janela ajustada dinamicamente: 5
+2024-11-22 19:16:56,663 - WARNING - Recebido NAK para pacote 6, retransmitindo...
+2024-11-22 19:16:56,663 - WARNING - Simulando falha no pacote 6
+2024-11-22 19:16:56,663 - INFO - Enviado: ERR:6:WMB:230
+2024-11-22 19:16:56,663 - INFO - Recebido ACK para pacote 1
+2024-11-22 19:16:56,663 - INFO - Janela ajustada dinamicamente: 5
+2024-11-22 19:16:56,663 - WARNING - Recebido NAK para pacote 5, retransmitindo...
+2024-11-22 19:16:56,663 - WARNING - Simulando falha no pacote 5
+2024-11-22 19:16:56,663 - INFO - Enviado: ERR:5:telorvehC:940
+2024-11-22 19:16:56,663 - WARNING - Recebido NAK para pacote 8, retransmitindo...
+2024-11-22 19:16:56,663 - INFO - Enviado: SEND:8:Audi:387
+2024-11-22 19:16:56,664 - INFO - Recebido ACK para pacote 1
+2024-11-22 19:16:56,664 - INFO - Janela ajustada dinamicamente: 5
+2024-11-22 19:16:56,664 - WARNING - Recebido NAK para pacote 5, retransmitindo...
+2024-11-22 19:16:56,664 - WARNING - Simulando falha no pacote 5
+2024-11-22 19:16:56,664 - INFO - Enviado: ERR:5:telorvehC:940
+2024-11-22 19:16:56,664 - WARNING - Recebido NAK para pacote 10, retransmitindo...
+2024-11-22 19:16:56,664 - INFO - Enviado: SEND:10:Maserati:822
+2024-11-22 19:16:56,664 - INFO - Recebido ACK para pacote 1
+2024-11-22 19:16:56,664 - INFO - Janela ajustada dinamicamente: 5
+2024-11-22 19:16:56,664 - WARNING - Recebido NAK para pacote 5, retransmitindo...
+2024-11-22 19:16:56,664 - INFO - Enviado: SEND:5:Chevrolet:940
+2024-11-22 19:16:56,664 - WARNING - Recebido NAK para pacote 6, retransmitindo...
+2024-11-22 19:16:56,665 - INFO - Enviado: SEND:6:BMW:230
+2024-11-22 19:16:56,665 - WARNING - Recebido NAK para pacote 5, retransmitindo...
+2024-11-22 19:16:56,665 - WARNING - Simulando falha no pacote 5
+2024-11-22 19:16:56,665 - INFO - Enviado: ERR:5:telorvehC:940
+2024-11-22 19:16:56,665 - WARNING - Recebido NAK para pacote 5, retransmitindo...
+2024-11-22 19:16:56,665 - WARNING - Simulando falha no pacote 5
+2024-11-22 19:16:56,665 - INFO - Enviado: ERR:5:telorvehC:940
+2024-11-22 19:16:56,665 - WARNING - Recebido NAK para pacote 5, retransmitindo...
+2024-11-22 19:16:56,666 - INFO - Enviado: SEND:5:Chevrolet:940
+2024-11-22 19:16:56,666 - WARNING - Recebido NAK para pacote 10, retransmitindo...
+2024-11-22 19:16:56,666 - INFO - Enviado: SEND:10:Maserati:822
+2024-11-22 19:16:56,666 - INFO - Recebido ACK para pacote 5
+2024-11-22 19:16:56,666 - INFO - Janela ajustada dinamicamente: 6
+2024-11-22 19:16:56,666 - INFO - Recebido ACK para pacote 6
+2024-11-22 19:16:56,666 - INFO - Janela ajustada dinamicamente: 7
+2024-11-22 19:16:56,666 - INFO - Recebido ACK para pacote 7
+2024-11-22 19:16:56,666 - INFO - Janela ajustada dinamicamente: 8
+2024-11-22 19:16:56,666 - INFO - Recebido ACK para pacote 8
+2024-11-22 19:16:56,666 - INFO - Janela ajustada dinamicamente: 9
+2024-11-22 19:16:56,667 - INFO - Recebido ACK para pacote 9
+2024-11-22 19:16:56,667 - INFO - Janela ajustada dinamicamente: 10
+2024-11-22 19:16:56,667 - WARNING - Recebido NAK para pacote 5, retransmitindo...
+2024-11-22 19:16:56,667 - INFO - Enviado: SEND:5:Chevrolet:940
+2024-11-22 19:16:56,667 - WARNING - Recebido NAK para pacote 5, retransmitindo...
+2024-11-22 19:16:56,667 - WARNING - Simulando falha no pacote 5
+2024-11-22 19:16:56,667 - INFO - Enviado: ERR:5:telorvehC:940
+2024-11-22 19:16:56,667 - INFO - Recebido ACK para pacote 5
+2024-11-22 19:16:56,667 - INFO - Janela ajustada dinamicamente: 10
+2024-11-22 19:16:56,667 - INFO - Recebido ACK para pacote 10
+2024-11-22 19:16:56,667 - INFO - Janela ajustada dinamicamente: 10
+2024-11-22 19:16:56,667 - INFO - Recebido ACK para pacote 5
+2024-11-22 19:16:56,667 - INFO - Janela ajustada dinamicamente: 10
+2024-11-22 19:16:56,667 - WARNING - Recebido NAK para pacote 5, retransmitindo...
+2024-11-22 19:16:56,668 - INFO - Enviado: SEND:5:Chevrolet:940
+2024-11-22 19:16:57,667 - INFO - Todos os pacotes foram confirmados. Encerrando...
+2024-11-22 19:16:57,667 - INFO - Aguardando confirmação final dos ACKs...
+2024-11-22 19:16:58,672 - INFO - Conexão encerrada.

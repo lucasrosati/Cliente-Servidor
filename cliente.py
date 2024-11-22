@@ -19,10 +19,22 @@ class Cliente:
         self.timer_threads = {}
         self.buffer_dados = []
 
+    def enviar_handshake(self):
+        handshake_msg = f"HANDSHAKE:PROTOCOL:SR:WINDOW:{self.janela}"
+        self.socket.sendall(f"{handshake_msg}\n".encode())
+        print(f"Handshake enviado: {handshake_msg}")
+        ack_handshake = self.socket.recv(1024).decode().strip()
+        
+        if ack_handshake.startswith("ACK_HANDSHAKE"):
+            print(f"Handshake confirmado pelo servidor: {ack_handshake}")
+        else:
+            print("Falha no handshake. Encerrando conexão.")
+            self.socket.close()
+            exit()
+
+
+
     def carregar_dados(self):
-        """
-        Carrega os dados do arquivo carros.txt ou gera mensagens genéricas caso o arquivo não exista.
-        """
         path = os.path.join(os.getcwd(), "carros.txt")
         try:
             with open(path, "r") as arquivo:
@@ -32,15 +44,9 @@ class Cliente:
             self.buffer_dados = [f"Mensagem {i + 1}" for i in range(self.num_mensagens)]
 
     def calcular_checksum(self, mensagem):
-        """
-        Calcula o checksum da mensagem.
-        """
         return sum(ord(c) for c in mensagem) & 0xFFFF
 
     def enviar_pacote(self, seq_num, mensagem):
-        """
-        Envia um pacote com possível introdução de erro para simular falhas na transmissão.
-        """
         checksum = self.calcular_checksum(mensagem)
         if random.random() < self.prob_erro:
             mensagem = f"ERR:{seq_num}:{mensagem[::-1]}:{checksum}"
@@ -55,9 +61,6 @@ class Cliente:
             print(f"Erro ao enviar pacote {seq_num}: {e}")
 
     def iniciar_timer(self, seq_num):
-        """
-        Inicia um timer para retransmissão caso não receba um ACK no tempo esperado.
-        """
         def timer_expirado():
             if seq_num not in self.acks_recebidos:
                 print(f"Timeout para pacote {seq_num}, retransmitindo...")
@@ -72,17 +75,11 @@ class Cliente:
         self.timer_threads[seq_num] = timer
 
     def cancelar_timer(self, seq_num):
-        """
-        Cancela o timer de retransmissão para pacotes confirmados.
-        """
         if seq_num in self.timer_threads:
             self.timer_threads[seq_num].cancel()
             del self.timer_threads[seq_num]
 
     def receber_respostas(self):
-        """
-        Recebe respostas do servidor (ACKs ou NAKs) e processa-as.
-        """
         buffer = ""
         while len(self.acks_recebidos) < self.num_mensagens:
             try:
@@ -107,17 +104,15 @@ class Cliente:
                             self.cancelar_timer(seq_num)
                         elif tipo == "NAK":
                             print(f"Recebido NAK para pacote {seq_num}, retransmitindo...")
-                            self.enviar_pacote(seq_num, self.buffer_dados[seq_num - 1])
-                            self.iniciar_timer(seq_num)
+                            if seq_num not in self.acks_recebidos:
+                                self.enviar_pacote(seq_num, self.buffer_dados[seq_num - 1])
+                                self.iniciar_timer(seq_num)
                     else:
                         print(f"Resposta corrompida: {linha}")
             except Exception as e:
                 print(f"Erro ao receber resposta: {e}")
 
     def iniciar_envio(self):
-        """
-        Inicia o envio de pacotes e gerencia retransmissões e timeouts.
-        """
         self.carregar_dados()
         threading.Thread(target=self.receber_respostas, daemon=True).start()
 
@@ -133,24 +128,24 @@ class Cliente:
 
     def fechar_conexao(self):
         print("Aguardando confirmação final dos ACKs...")
-        time.sleep(1)  # Aguarda para garantir o envio de ACKs finais
+        time.sleep(1)
         self.socket.close()
         print("Conexão encerrada.")
 
-
-
 def menu_cliente():
-    """
-    Menu de configuração do cliente.
-    """
     host = input("Digite o endereço do servidor (127.0.0.1 por padrão): ") or "127.0.0.1"
     port = int(input("Digite a porta do servidor (12346 por padrão): ") or 12346)
     prob_erro = float(input("Digite a probabilidade de erro (ex: 0.1): "))
     janela = int(input("Digite o tamanho inicial da janela: "))
     num_mensagens = int(input("Digite o número de mensagens a enviar: "))
+    modo_envio = input("Escolha o modo de envio (unico ou rajada): ").lower()
 
     cliente = Cliente(host, port, prob_erro, janela, num_mensagens)
-    cliente.iniciar_envio()
+    cliente.enviar_handshake()
+    if modo_envio == "unico":
+        cliente.iniciar_envio()
+    elif modo_envio == "rajada":
+        cliente.iniciar_envio()  # Reutiliza a lógica de envio padrão para rajada
     cliente.fechar_conexao()
 
 if __name__ == "__main__":

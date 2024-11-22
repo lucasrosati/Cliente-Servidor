@@ -1,0 +1,109 @@
+2024-11-22 19:16:38,145 - INFO - Aguardando conexões...
+2024-11-22 19:16:56,655 - INFO - Conexão com ('127.0.0.1', 62737) estabelecida.
+2024-11-22 19:16:56,657 - INFO - Handshake processado: HANDSHAKE_OK:PROT:SR:WINDOW:5
+2024-11-22 19:16:56,658 - INFO - Recebido ERR:1:adnoH
+2024-11-22 19:16:56,658 - ERROR - Pacote 1 corrompido recebido (ERR): adnoH
+2024-11-22 19:16:56,658 - INFO - Enviado: NAK:1:325
+2024-11-22 19:16:56,659 - INFO - Recebido SEND:2:Ferrari
+2024-11-22 19:16:56,659 - WARNING - Pacote 2 fora de ordem: Ferrari. Dentro da janela: [1, 2, 3, 4, 5]
+2024-11-22 19:16:56,659 - INFO - Enviado: NAK:1:325
+2024-11-22 19:16:56,659 - INFO - Recebido SEND:3:Toyota
+2024-11-22 19:16:56,659 - WARNING - Pacote 3 fora de ordem: Toyota. Dentro da janela: [1, 2, 3, 4, 5]
+2024-11-22 19:16:56,659 - INFO - Enviado: NAK:1:325
+2024-11-22 19:16:56,659 - INFO - Recebido SEND:4:Ford
+2024-11-22 19:16:56,659 - WARNING - Pacote 4 fora de ordem: Ford. Dentro da janela: [1, 2, 3, 4, 5]
+2024-11-22 19:16:56,659 - INFO - Enviado: NAK:1:325
+2024-11-22 19:16:56,659 - INFO - Recebido ERR:5:telorvehC
+2024-11-22 19:16:56,659 - ERROR - Pacote 5 corrompido recebido (ERR): telorvehC
+2024-11-22 19:16:56,659 - INFO - Enviado: NAK:5:329
+2024-11-22 19:16:56,659 - INFO - Recebido SEND:1:Honda
+2024-11-22 19:16:56,659 - INFO - Enviado: ACK:1:314
+2024-11-22 19:16:56,659 - INFO - Janela de recepção atualizada: [2, 3, 4, 5, 6]
+2024-11-22 19:16:56,660 - INFO - Processando pacote fora de ordem: 2 - Ferrari
+2024-11-22 19:16:56,660 - INFO - Enviado: ACK:2:315
+2024-11-22 19:16:56,660 - INFO - Janela de recepção atualizada: [3, 4, 5, 6, 7]
+2024-11-22 19:16:56,660 - INFO - Processando pacote fora de ordem: 3 - Toyota
+2024-11-22 19:16:56,660 - INFO - Enviado: ACK:3:316
+2024-11-22 19:16:56,660 - INFO - Janela de recepção atualizada: [4, 5, 6, 7, 8]
+2024-11-22 19:16:56,660 - INFO - Processando pacote fora de ordem: 4 - Ford
+2024-11-22 19:16:56,661 - INFO - Enviado: ACK:4:317
+2024-11-22 19:16:56,661 - INFO - Janela de recepção atualizada: [5, 6, 7, 8, 9]
+2024-11-22 19:16:56,661 - INFO - Recebido ERR:6:WMB
+2024-11-22 19:16:56,661 - ERROR - Pacote 6 corrompido recebido (ERR): WMB
+2024-11-22 19:16:56,661 - INFO - Enviado: NAK:6:330
+2024-11-22 19:16:56,661 - INFO - Recebido SEND:1:Honda
+2024-11-22 19:16:56,661 - INFO - Pacote 1 já recebido anteriormente: Honda
+2024-11-22 19:16:56,661 - INFO - Enviado: ACK:1:314
+2024-11-22 19:16:56,661 - INFO - Recebido SEND:7:Mercedes
+2024-11-22 19:16:56,661 - WARNING - Pacote 7 fora de ordem: Mercedes. Dentro da janela: [5, 6, 7, 8, 9]
+2024-11-22 19:16:56,661 - INFO - Enviado: NAK:5:329
+2024-11-22 19:16:56,661 - INFO - Recebido ERR:8:iduA
+2024-11-22 19:16:56,661 - ERROR - Pacote 8 corrompido recebido (ERR): iduA
+2024-11-22 19:16:56,661 - INFO - Enviado: NAK:8:332
+2024-11-22 19:16:56,661 - INFO - Recebido SEND:1:Honda
+2024-11-22 19:16:56,662 - INFO - Pacote 1 já recebido anteriormente: Honda
+2024-11-22 19:16:56,662 - INFO - Enviado: ACK:1:314
+2024-11-22 19:16:56,662 - INFO - Recebido SEND:9:Lamborghini
+2024-11-22 19:16:56,662 - WARNING - Pacote 9 fora de ordem: Lamborghini. Dentro da janela: [5, 6, 7, 8, 9]
+2024-11-22 19:16:56,662 - INFO - Enviado: NAK:5:329
+2024-11-22 19:16:56,662 - INFO - Recebido ERR:10:itaresaM
+2024-11-22 19:16:56,662 - ERROR - Pacote 10 corrompido recebido (ERR): itaresaM
+2024-11-22 19:16:56,662 - INFO - Enviado: NAK:10:373
+2024-11-22 19:16:56,662 - INFO - Recebido SEND:1:Honda
+2024-11-22 19:16:56,662 - INFO - Pacote 1 já recebido anteriormente: Honda
+2024-11-22 19:16:56,662 - INFO - Enviado: ACK:1:314
+2024-11-22 19:16:56,662 - INFO - Recebido ERR:5:telorvehC
+2024-11-22 19:16:56,662 - ERROR - Pacote 5 corrompido recebido (ERR): telorvehC
+2024-11-22 19:16:56,662 - INFO - Enviado: NAK:5:329
+2024-11-22 19:16:56,663 - INFO - Recebido ERR:6:WMB
+2024-11-22 19:16:56,663 - ERROR - Pacote 6 corrompido recebido (ERR): WMB
+2024-11-22 19:16:56,663 - INFO - Enviado: NAK:6:330
+2024-11-22 19:16:56,663 - INFO - Recebido ERR:5:telorvehC
+2024-11-22 19:16:56,663 - ERROR - Pacote 5 corrompido recebido (ERR): telorvehC
+2024-11-22 19:16:56,663 - INFO - Enviado: NAK:5:329
+2024-11-22 19:16:56,663 - INFO - Recebido SEND:8:Audi
+2024-11-22 19:16:56,663 - WARNING - Pacote 8 fora de ordem: Audi. Dentro da janela: [5, 6, 7, 8, 9]
+2024-11-22 19:16:56,664 - INFO - Enviado: NAK:5:329
+2024-11-22 19:16:56,664 - INFO - Recebido ERR:5:telorvehC
+2024-11-22 19:16:56,664 - ERROR - Pacote 5 corrompido recebido (ERR): telorvehC
+2024-11-22 19:16:56,664 - INFO - Enviado: NAK:5:329
+2024-11-22 19:16:56,664 - INFO - Recebido SEND:10:Maserati
+2024-11-22 19:16:56,664 - WARNING - Pacote 10 fora da janela de recepção: Maserati. Esperado: [5, 6, 7, 8, 9]
+2024-11-22 19:16:56,664 - INFO - Enviado: NAK:10:373
+2024-11-22 19:16:56,664 - INFO - Recebido SEND:5:Chevrolet
+2024-11-22 19:16:56,664 - INFO - Enviado: ACK:5:318
+2024-11-22 19:16:56,664 - INFO - Janela de recepção atualizada: [6, 7, 8, 9, 10]
+2024-11-22 19:16:56,665 - INFO - Recebido SEND:6:BMW
+2024-11-22 19:16:56,665 - INFO - Enviado: ACK:6:319
+2024-11-22 19:16:56,665 - INFO - Janela de recepção atualizada: [7, 8, 9, 10, 11]
+2024-11-22 19:16:56,665 - INFO - Processando pacote fora de ordem: 7 - Mercedes
+2024-11-22 19:16:56,665 - INFO - Enviado: ACK:7:320
+2024-11-22 19:16:56,665 - INFO - Janela de recepção atualizada: [8, 9, 10, 11, 12]
+2024-11-22 19:16:56,665 - INFO - Processando pacote fora de ordem: 8 - Audi
+2024-11-22 19:16:56,665 - INFO - Enviado: ACK:8:321
+2024-11-22 19:16:56,665 - INFO - Janela de recepção atualizada: [9, 10, 11, 12, 13]
+2024-11-22 19:16:56,665 - INFO - Processando pacote fora de ordem: 9 - Lamborghini
+2024-11-22 19:16:56,665 - INFO - Enviado: ACK:9:322
+2024-11-22 19:16:56,665 - INFO - Janela de recepção atualizada: [10, 11, 12, 13, 14]
+2024-11-22 19:16:56,665 - INFO - Recebido ERR:5:telorvehC
+2024-11-22 19:16:56,665 - ERROR - Pacote 5 corrompido recebido (ERR): telorvehC
+2024-11-22 19:16:56,665 - INFO - Enviado: NAK:5:329
+2024-11-22 19:16:56,665 - INFO - Recebido ERR:5:telorvehC
+2024-11-22 19:16:56,665 - ERROR - Pacote 5 corrompido recebido (ERR): telorvehC
+2024-11-22 19:16:56,665 - INFO - Enviado: NAK:5:329
+2024-11-22 19:16:56,666 - INFO - Recebido SEND:5:Chevrolet
+2024-11-22 19:16:56,666 - INFO - Pacote 5 já recebido anteriormente: Chevrolet
+2024-11-22 19:16:56,666 - INFO - Enviado: ACK:5:318
+2024-11-22 19:16:56,666 - INFO - Recebido SEND:10:Maserati
+2024-11-22 19:16:56,666 - INFO - Enviado: ACK:10:362
+2024-11-22 19:16:56,666 - INFO - Janela de recepção atualizada: [11, 12, 13, 14, 15]
+2024-11-22 19:16:56,667 - INFO - Recebido SEND:5:Chevrolet
+2024-11-22 19:16:56,667 - INFO - Pacote 5 já recebido anteriormente: Chevrolet
+2024-11-22 19:16:56,667 - INFO - Enviado: ACK:5:318
+2024-11-22 19:16:56,667 - INFO - Recebido ERR:5:telorvehC
+2024-11-22 19:16:56,667 - ERROR - Pacote 5 corrompido recebido (ERR): telorvehC
+2024-11-22 19:16:56,667 - INFO - Enviado: NAK:5:329
+2024-11-22 19:16:56,668 - INFO - Recebido SEND:5:Chevrolet
+2024-11-22 19:16:56,668 - INFO - Pacote 5 já recebido anteriormente: Chevrolet
+2024-11-22 19:16:56,668 - INFO - Enviado: ACK:5:318
+2024-11-22 19:16:58,672 - ERROR - Cliente encerrou a conexão inesperadamente.

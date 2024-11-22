@@ -1,0 +1,33 @@
+Aguardando conexões...
+Conexão com ('127.0.0.1', 63436) estabelecida.
+Pacote 1 confirmado: Mensagem 1
+Enviado: ACK:1:314 (Checksum: 314)
+Janela de recepção atualizada: [2, 3, 4, 5, 6]
+Pacote 2 confirmado: Mensagem 2
+Enviado: ACK:2:315 (Checksum: 315)
+Janela de recepção atualizada: [3, 4, 5, 6, 7]
+Pacote 3 confirmado: Mensagem 3
+Enviado: ACK:3:316 (Checksum: 316)
+Janela de recepção atualizada: [4, 5, 6, 7, 8]
+Pacote 4 confirmado: Mensagem 4
+Enviado: ACK:4:317 (Checksum: 317)
+Janela de recepção atualizada: [5, 6, 7, 8, 9]
+Pacote 5 confirmado: Mensagem 5
+Enviado: ACK:5:318 (Checksum: 318)
+Janela de recepção atualizada: [6, 7, 8, 9, 10]
+Pacote 6 confirmado: Mensagem 6
+Enviado: ACK:6:319 (Checksum: 319)
+Janela de recepção atualizada: [7, 8, 9, 10, 11]
+Pacote 7 confirmado: Mensagem 7
+Enviado: ACK:7:320 (Checksum: 320)
+Janela de recepção atualizada: [8, 9, 10, 11, 12]
+Pacote 8 confirmado: Mensagem 8
+Enviado: ACK:8:321 (Checksum: 321)
+Janela de recepção atualizada: [9, 10, 11, 12, 13]
+Pacote 9 confirmado: Mensagem 9
+Enviado: ACK:9:322 (Checksum: 322)
+Janela de recepção atualizada: [10, 11, 12, 13, 14]
+Pacote 10 confirmado: Mensagem 10
+Enviado: ACK:10:362 (Checksum: 362)
+Janela de recepção atualizada: [11, 12, 13, 14, 15]
+Conexão encerrada pelo cliente.

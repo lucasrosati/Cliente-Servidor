@@ -2,11 +2,12 @@ import socket
 import threading
 
 class Servidor:
-    def __init__(self, host, port, protocolo, cumulativo):
+    def __init__(self, host, port, protocolo, cumulativo, tamanho_janela):
         self.host = host
         self.port = port
         self.protocolo = protocolo  # 'SR' para Selective Repeat, 'GBN' para Go-Back-N
         self.cumulativo = cumulativo  # Confirmação cumulativa (True/False)
+        self.tamanho_janela = tamanho_janela  # Tamanho da janela de recepção
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((self.host, self.port))
@@ -14,9 +15,17 @@ class Servidor:
         self.seq_esperado = 1
         self.mensagens_recebidas = {}
         self.pacotes_fora_de_ordem = {}  # Armazena pacotes fora de ordem
+        self.janela_recepcao = list(range(1, self.tamanho_janela + 1))  # Janela dinâmica inicial
 
     def calcular_checksum(self, mensagem):
         return sum(ord(c) for c in mensagem) & 0xFFFF
+
+    def atualizar_janela(self):
+        """Atualiza a janela de recepção dinamicamente com base no próximo pacote esperado."""
+        while self.seq_esperado in self.mensagens_recebidas:
+            self.seq_esperado += 1
+        self.janela_recepcao = list(range(self.seq_esperado, self.seq_esperado + self.tamanho_janela))
+        print(f"Janela de recepção atualizada: {self.janela_recepcao}")
 
     def enviar_ack(self, conn, seq_num):
         ack_data = f"ACK:{seq_num}"
@@ -43,7 +52,7 @@ class Servidor:
             print(f"Pacote {seq_num} confirmado: {conteudo}")
             self.mensagens_recebidas[seq_num] = conteudo
             self.enviar_ack(conn, seq_num)
-            self.seq_esperado += 1
+            self.atualizar_janela()
 
             # Processar pacotes fora de ordem armazenados
             while self.seq_esperado in self.pacotes_fora_de_ordem:
@@ -51,16 +60,20 @@ class Servidor:
                 print(f"Processando pacote fora de ordem: {self.seq_esperado} - {conteudo_fora}")
                 self.mensagens_recebidas[self.seq_esperado] = conteudo_fora
                 self.enviar_ack(conn, self.seq_esperado)
-                self.seq_esperado += 1
-        elif seq_num > self.seq_esperado:
-            # Pacote fora de ordem
-            print(f"Pacote {seq_num} fora de ordem: {conteudo}. Esperado: {self.seq_esperado}")
+                self.atualizar_janela()
+        elif seq_num in self.janela_recepcao:
+            # Pacote fora de ordem dentro da janela
+            print(f"Pacote {seq_num} fora de ordem: {conteudo}. Dentro da janela: {self.janela_recepcao}")
             self.pacotes_fora_de_ordem[seq_num] = conteudo
             self.enviar_nak(conn, self.seq_esperado)
         else:
-            # Pacote já recebido
-            print(f"Pacote {seq_num} já recebido anteriormente: {conteudo}")
-            self.enviar_ack(conn, seq_num)
+            # Pacote fora da janela ou já recebido
+            if seq_num < self.seq_esperado:
+                print(f"Pacote {seq_num} já recebido anteriormente: {conteudo}")
+                self.enviar_ack(conn, seq_num)
+            else:
+                print(f"Pacote {seq_num} fora da janela de recepção: {conteudo}. Esperado: {self.janela_recepcao}")
+                self.enviar_nak(conn, seq_num)
 
     def receber_dados(self, conn):
         buffer = ""
@@ -81,7 +94,7 @@ class Servidor:
                         checksum_recebido = int(checksum_recebido_str)
 
                         print(f"Recebido {comando}:{seq_num}:{conteudo} "
-                              f"(Checksum recebido: {checksum_recebido})")
+                            f"(Checksum recebido: {checksum_recebido})")
 
                         if comando == "SEND":
                             self.processar_pacote(conn, seq_num, conteudo, checksum_recebido)
@@ -90,11 +103,15 @@ class Servidor:
                             self.enviar_nak(conn, seq_num)
                     else:
                         print(f"Mensagem recebida em formato desconhecido: {linha.strip()}")
+            except ConnectionResetError:
+                print("Cliente encerrou a conexão inesperadamente.")
+                break
             except Exception as e:
                 print(f"Erro na comunicação: {e}")
                 break
         conn.close()
-        print("Conexão encerrada pelo cliente.")
+    print("Conexão encerrada pelo cliente.")
+
 
     def iniciar(self):
         print("Aguardando conexões...")
@@ -110,7 +127,8 @@ def menu_servidor():
     port = int(input("Digite a porta do servidor (12346 por padrão): ") or 12346)
     protocolo = input("Escolha o protocolo (SR para Selective Repeat, GBN para Go-Back-N): ").upper()
     cumulativo = input("Deseja confirmar pacotes cumulativamente? (S/N): ").lower() == "s"
-    servidor = Servidor(host, port, protocolo, cumulativo)
+    tamanho_janela = int(input("Digite o tamanho da janela de recepção (ex.: 5): "))
+    servidor = Servidor(host, port, protocolo, cumulativo, tamanho_janela)
     servidor.iniciar()
 
 if __name__ == "__main__":

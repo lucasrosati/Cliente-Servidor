@@ -132,11 +132,12 @@ class Cliente:
         print("Todos os pacotes foram confirmados. Encerrando...")
 
     def fechar_conexao(self):
-        """
-        Fecha a conexão com o servidor.
-        """
+        print("Aguardando confirmação final dos ACKs...")
+        time.sleep(1)  # Aguarda para garantir o envio de ACKs finais
         self.socket.close()
         print("Conexão encerrada.")
+
+
 
 def menu_cliente():
     """

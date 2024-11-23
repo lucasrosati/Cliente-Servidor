@@ -5,12 +5,13 @@ import random
 import os
 
 class Cliente:
-    def __init__(self, host, port, prob_erro, janela, num_mensagens):
+    def __init__(self, host, port, prob_erro, janela, num_mensagens, protocolo):
         self.host = host
         self.port = port
         self.prob_erro = prob_erro
         self.janela = janela
         self.num_mensagens = num_mensagens
+        self.protocolo = protocolo.upper()  # Adiciona o protocolo e converte para maiúsculo
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((self.host, self.port))
         self.acks_recebidos = set()
@@ -19,18 +20,20 @@ class Cliente:
         self.timer_threads = {}
         self.buffer_dados = []
 
+
     def enviar_handshake(self):
-        handshake_msg = f"HANDSHAKE:PROTOCOL:SR:WINDOW:{self.janela}"
+        handshake_msg = f"HANDSHAKE:PROTOCOL:{self.protocolo}:WINDOW:{self.janela}"
         self.socket.sendall(f"{handshake_msg}\n".encode())
         print(f"Handshake enviado: {handshake_msg}")
         ack_handshake = self.socket.recv(1024).decode().strip()
-        
-        if ack_handshake.startswith("ACK_HANDSHAKE"):
+
+        if ack_handshake.startswith(f"ACK_HANDSHAKE:PROTOCOL:{self.protocolo}:WINDOW:{self.janela}"):
             print(f"Handshake confirmado pelo servidor: {ack_handshake}")
         else:
             print("Falha no handshake. Encerrando conexão.")
             self.socket.close()
             exit()
+
 
 
 
@@ -138,15 +141,17 @@ def menu_cliente():
     prob_erro = float(input("Digite a probabilidade de erro (ex: 0.1): "))
     janela = int(input("Digite o tamanho inicial da janela: "))
     num_mensagens = int(input("Digite o número de mensagens a enviar: "))
+    protocolo = input("Escolha o protocolo (SR para Selective Repeat, GBN para Go-Back-N): ").upper()
     modo_envio = input("Escolha o modo de envio (unico ou rajada): ").lower()
 
-    cliente = Cliente(host, port, prob_erro, janela, num_mensagens)
+    cliente = Cliente(host, port, prob_erro, janela, num_mensagens, protocolo)
     cliente.enviar_handshake()
     if modo_envio == "unico":
         cliente.iniciar_envio()
     elif modo_envio == "rajada":
-        cliente.iniciar_envio()  # Reutiliza a lógica de envio padrão para rajada
+        cliente.iniciar_envio()
     cliente.fechar_conexao()
+
 
 if __name__ == "__main__":
     menu_cliente()

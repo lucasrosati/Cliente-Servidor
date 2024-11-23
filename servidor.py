@@ -74,26 +74,27 @@ class Servidor:
                 self.enviar_nak(conn, seq_num)
 
     def extrair_handshake(self, handshake_msg):
-        """Processa a mensagem de handshake e retorna os valores de protocolo e janela."""
         try:
             partes = handshake_msg.split(":")
             protocolo = partes[2]
             janela = partes[4]
-            return protocolo, int(janela)
+            return protocolo.upper(), int(janela)
         except IndexError:
             print("Erro ao processar a mensagem de handshake.")
             return None, None
 
+
+
     def receber_dados(self, conn):
         buffer = ""
-        
+
         # Validação do Handshake
         try:
             handshake_msg = conn.recv(1024).decode().strip()
             if handshake_msg.startswith("HANDSHAKE:"):
                 print(f"Handshake recebido: {handshake_msg}")
                 protocolo, janela = self.extrair_handshake(handshake_msg)
-                
+
                 if protocolo == self.protocolo and janela == self.tamanho_janela:
                     ack_handshake = f"ACK_HANDSHAKE:PROTOCOL:{self.protocolo}:WINDOW:{self.tamanho_janela}\n"
                     conn.sendall(ack_handshake.encode())
@@ -129,7 +130,7 @@ class Servidor:
                         checksum_recebido = int(checksum_recebido_str)
 
                         print(f"Recebido {comando}:{seq_num}:{conteudo} "
-                              f"(Checksum recebido: {checksum_recebido})")
+                            f"(Checksum recebido: {checksum_recebido})")
 
                         if comando == "SEND":
                             self.processar_pacote(conn, seq_num, conteudo, checksum_recebido)
@@ -146,6 +147,7 @@ class Servidor:
                 break
         conn.close()
         print("Conexão encerrada pelo cliente.")
+
 
     def iniciar(self):
         print("Aguardando conexões...")

@@ -116,11 +116,20 @@ class Cliente:
         threading.Thread(target=self.receber_respostas, daemon=True).start()
 
         if modo_envio == "unico":
-            # Envio pacote por pacote
-            for seq_num in range(1, self.num_mensagens + 1):
+            # Perguntar ao usuário qual pacote ele deseja enviar
+            pacote_escolhido = int(input(f"Escolha o número do pacote que deseja enviar (1 a {self.num_mensagens}): "))
+            
+            if 1 <= pacote_escolhido <= self.num_mensagens:
+                seq_num = pacote_escolhido
                 if seq_num not in self.acks_recebidos:
                     self.enviar_pacote(seq_num, self.buffer_dados[seq_num - 1])
                     self.iniciar_timer(seq_num)
+                    while seq_num not in self.acks_recebidos:
+                        time.sleep(1)
+                    print(f"Pacote {seq_num} foi confirmado. Encerrando...")
+            else:
+                print(f"Pacote {pacote_escolhido} inválido. Não foi enviado nenhum pacote.")
+
         elif modo_envio == "rajada":
             # Envio de múltiplos pacotes em rajada
             pacotes_para_enviar = []
@@ -139,10 +148,10 @@ class Cliente:
             except Exception as e:
                 print(f"Erro ao enviar pacotes em rajada: {e}")
 
-        while len(self.acks_recebidos) < self.num_mensagens:
-            time.sleep(1)
+        print("Conexão encerrada.")
+        self.socket.close()  # Fecha a conexão com o servidor após o envio.
 
-        print("Todos os pacotes foram confirmados. Encerrando...")
+
 
     def fechar_conexao(self):
         """Fecha a conexão com o servidor"""

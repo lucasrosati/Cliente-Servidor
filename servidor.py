@@ -118,21 +118,15 @@ class Servidor:
                 buffer += data
                 while "\n" in buffer:
                     linha, buffer = buffer.split("\n", 1)
-                    partes = linha.strip().split(":")
-                    if len(partes) >= 4:
-                        comando, seq_num_str, conteudo, checksum_recebido_str = partes
-                        seq_num = int(seq_num_str)
-                        checksum_recebido = int(checksum_recebido_str)
 
-                        print(f"Recebido {comando}:{seq_num}:{conteudo} (Checksum recebido: {checksum_recebido})")
-
-                        if comando == "SEND":
-                            self.processar_pacote(conn, seq_num, conteudo, checksum_recebido)
-                        elif comando == "ERR":
-                            print(f"Pacote {seq_num} corrompido recebido (ERR): {conteudo}")
-                            self.enviar_nak(conn, seq_num)
+                    # Se detectar pacotes em rajada, separa por ";"
+                    if ";" in linha:
+                        pacotes = linha.split(";")
+                        for pacote in pacotes:
+                            self.processar_linha_pacote(conn, pacote.strip())
                     else:
-                        print(f"Mensagem recebida em formato desconhecido: {linha.strip()}")
+                        self.processar_linha_pacote(conn, linha.strip())
+
             except ConnectionResetError:
                 print("Cliente encerrou a conexão inesperadamente.")
                 break
@@ -141,6 +135,23 @@ class Servidor:
                 break
         conn.close()
         print("Conexão encerrada pelo cliente.")
+
+    def processar_linha_pacote(self, conn, linha):
+        partes = linha.split(":")
+        if len(partes) >= 4:
+            comando, seq_num_str, conteudo, checksum_recebido_str = partes
+            seq_num = int(seq_num_str)
+            checksum_recebido = int(checksum_recebido_str)
+
+            print(f"Recebido {comando}:{seq_num}:{conteudo} (Checksum recebido: {checksum_recebido})")
+
+            if comando == "SEND":
+                self.processar_pacote(conn, seq_num, conteudo, checksum_recebido)
+            elif comando == "ERR":
+                print(f"Pacote {seq_num} corrompido recebido (ERR): {conteudo}")
+                self.enviar_nak(conn, seq_num)
+        else:
+            print(f"Mensagem recebida em formato desconhecido: {linha.strip()}")
 
     def iniciar(self):
         print("Aguardando conexões...")

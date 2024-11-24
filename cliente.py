@@ -111,14 +111,33 @@ class Cliente:
             except Exception as e:
                 print(f"Erro ao receber resposta: {e}")
 
-    def iniciar_envio(self):
+    def iniciar_envio(self, modo_envio="unico"):
         self.carregar_dados()
         threading.Thread(target=self.receber_respostas, daemon=True).start()
 
-        for seq_num in range(1, self.num_mensagens + 1):
-            if seq_num not in self.acks_recebidos:
-                self.enviar_pacote(seq_num, self.buffer_dados[seq_num - 1])
-                self.iniciar_timer(seq_num)
+        if modo_envio == "unico":
+            # Envio pacote por pacote
+            for seq_num in range(1, self.num_mensagens + 1):
+                if seq_num not in self.acks_recebidos:
+                    self.enviar_pacote(seq_num, self.buffer_dados[seq_num - 1])
+                    self.iniciar_timer(seq_num)
+        elif modo_envio == "rajada":
+            # Envio de múltiplos pacotes em rajada
+            pacotes_para_enviar = []
+            for seq_num in range(1, self.num_mensagens + 1):
+                if seq_num not in self.acks_recebidos:
+                    mensagem = self.buffer_dados[seq_num - 1]
+                    checksum = self.calcular_checksum(mensagem)
+                    pacote = f"SEND:{seq_num}:{mensagem}:{checksum}"
+                    pacotes_para_enviar.append(pacote)
+
+            # Serializar todos os pacotes juntos separados por ";"
+            mensagem_em_rajada = ";".join(pacotes_para_enviar) + "\n"
+            try:
+                self.socket.sendall(mensagem_em_rajada.encode())
+                print(f"Enviado em rajada: {mensagem_em_rajada.strip()}")
+            except Exception as e:
+                print(f"Erro ao enviar pacotes em rajada: {e}")
 
         while len(self.acks_recebidos) < self.num_mensagens:
             time.sleep(1)
@@ -126,10 +145,9 @@ class Cliente:
         print("Todos os pacotes foram confirmados. Encerrando...")
 
     def fechar_conexao(self):
-        print("Aguardando confirmação final dos ACKs...")
-        time.sleep(1)
+        """Fecha a conexão com o servidor"""
         self.socket.close()
-        print("Conexão encerrada.")
+        print("Conexão fechada.")
 
 def menu_cliente():
     host = input("Digite o endereço do servidor (127.0.0.1 por padrão): ") or "127.0.0.1"

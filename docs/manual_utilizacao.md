@@ -56,15 +56,20 @@ Para alterar o modo de operação, modifique a variável `protocolo` no arquivo 
 
 3. **Controle de Fluxo e Janela Deslizante**:
    - **Janela Deslizante**: O cliente utiliza uma janela de envio que permite enviar múltiplos pacotes sem esperar um `ACK` para cada um. A janela é ajustada dinamicamente com base no congestionamento.
-   - **Controle de Congestionamento**: O cliente ajusta a janela de envio (tamanho de janela dinâmica) com base nos `ACKs` recebidos, utilizando os algoritmos de **Slow Start** e **Congestion Avoidance**.
+   - **Controle de Janela no Servidor**: O servidor ajusta dinamicamente a janela de recepção e informa o tamanho atual ao cliente em cada `ACK` ou `NAK`.
 
-4. **Relatório de Status**:
+4. **Envio em Rajada**:
+   - **Cliente**: Serializa vários pacotes em uma única mensagem separada por `;` e envia como um bloco.
+   - **Servidor**: Processa a rajada, verifica integridade e sequência de cada pacote dentro dela, descarta pacotes fora da janela e confirma os válidos.
+   - **Nota**: Caso o cliente envie mais pacotes do que o tamanho atual da janela do servidor, os pacotes excedentes serão descartados.
+
+5. **Relatório de Status**:
    - O cliente exibe ao final da execução um relatório com o número total de pacotes enviados e o número de pacotes retransmitidos devido a erros ou perdas.
 
-5. **Confirmação em Grupo**:
+6. **Confirmação em Grupo**:
    - O servidor pode enviar um `ACK` em grupo para confirmar múltiplos pacotes de uma vez. Por exemplo: `ACK:1-5` confirma que os pacotes de sequência `1` a `5` foram recebidos corretamente.
 
-6. **Controle de Retransmissão**:
+7. **Controle de Retransmissão**:
    - O cliente utiliza um temporizador para controlar a retransmissão dos pacotes que não foram confirmados dentro do tempo especificado. Caso ocorra uma falha na confirmação de um pacote, ele será retransmitido automaticamente.
 
 ## Exemplo de Execução
@@ -73,21 +78,11 @@ Para alterar o modo de operação, modifique a variável `protocolo` no arquivo 
 
 ```plaintext
 Conectado ao servidor em 127.0.0.1:12346
-Enviado para o servidor: SEND:1:Honda:14968
+Enviado em rajada: SEND:1:Honda:14968;SEND:2:Ferrari:18651;SEND:3:Toyota:17366
 Recebido ACK para pacote 1
-Enviado ACK_CONFIRM para pacote 1 (Checksum: 2151)
-Enviado para o servidor: SEND:2:Ferrari:18651
 Recebido ACK para pacote 2
-Enviado ACK_CONFIRM para pacote 2 (Checksum: 2146)
-Enviado para o servidor: SEND:3:Toyota:17366
 Recebido ACK para pacote 3
-Enviado ACK_CONFIRM para pacote 3 (Checksum: 2145)
 Simulando perda do pacote 5
-Enviado para o servidor: SEND:6:BMW:1172
-Simulando falha no pacote 12
-Enviado ERR:12:peeJ:5426 (Checksum: 5426)
-Recebido NAK para pacote 12, retransmitindo...
-Enviado: SEND:12:Jeep:5426
 Timeout para pacote 5, retransmitindo...
 Relatório de Status:
 Pacotes enviados: 6
@@ -99,19 +94,11 @@ Pacotes retransmitidos: 1
 ```plaintext
 Servidor iniciado em 127.0.0.1:12346 no modo Selective Repeat
 Conexão estabelecida com ('127.0.0.1', 61978)
-Recebido do cliente: SEND:1:Honda
-Enviado para o cliente: ACK:1
-Recebido do cliente: SEND:2:Ferrari
-Enviado para o cliente: ACK:2
-Recebido do cliente: SEND:3:Toyota
-Enviado para o cliente: ACK:3
-Recebido do cliente: SEND:4:Ford
-Enviado para o cliente: ACK:4
-Recebido do cliente: SEND:5:BMW
-Simulando falha no pacote 5
-Enviado para o cliente: NAK:5
-Recebido do cliente: SEND:6:Mercedes
-Enviado para o cliente: ACK:6
+Recebida rajada de pacotes: SEND:1:Honda;SEND:2:Ferrari;SEND:3:Toyota
+Pacote 1 confirmado
+Pacote 2 confirmado
+Pacote 3 confirmado
+Enviado: ACK:3:WINDOW:5
 ```
 
 ## Contribuição

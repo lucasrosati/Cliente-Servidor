@@ -44,7 +44,7 @@ O servidor pode enviar um `ACK` em grupo para confirmar múltiplos pacotes de um
 O sistema registra as operações, como o envio de pacotes, os `ACK`/`NAK` recebidos, os pacotes retransmitidos, e também os erros de integridade e perdas de pacotes. Exemplo de log:
 
 ### Exemplo de Logs do Servidor:
-```plaintext
+\`\`\`plaintext
 Recebido SEND:1:Honda (Checksum recebido: 14968, Checksum calculado: 14968)
 Enviado: ACK:1:7812 (Checksum: 7812)
 Recebido SEND:2:Ferrari (Checksum recebido: 18651, Checksum calculado: 18651)
@@ -53,10 +53,10 @@ Recebido ERR:5:telorvehC (Checksum recebido: 32632, Checksum calculado: 60040)
 Erro de checksum no pacote 5
 Enviado: NAK:5:4613 (Checksum: 4613)
 Recebido ACK para pacote 5
-```
+\`\`\`
 
 ### Exemplo de Logs do Cliente:
-```plaintext
+\`\`\`plaintext
 Enviado: SEND:1:Honda:14968
 Enviado: SEND:2:Ferrari:18651
 Enviado: SEND:3:Toyota:17366
@@ -67,7 +67,7 @@ Recebido NAK para pacote 5, retransmitindo...
 Timeout para pacote 5, retransmitindo...
 Enviado: SEND:5:Chevrolet:32632
 Recebido ACK para pacote 5
-```
+\`\`\`
 
 ## Conclusão
 

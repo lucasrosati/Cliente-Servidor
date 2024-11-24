@@ -8,10 +8,10 @@ class Cliente:
     def __init__(self, host, port, prob_erro, janela, num_mensagens, protocolo):
         self.host = host
         self.port = port
-        self.prob_erro = prob_erro
-        self.janela = janela
-        self.num_mensagens = num_mensagens
-        self.protocolo = protocolo.upper()  # Adiciona o protocolo e converte para maiúsculo
+        self.prob_erro = prob_erro  # Probabilidade de erro nos pacotes
+        self.janela = janela  # Tamanho inicial da janela
+        self.num_mensagens = num_mensagens  # Número total de mensagens a enviar
+        self.protocolo = protocolo.upper()  # 'SR' ou 'GBN'
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((self.host, self.port))
         self.acks_recebidos = set()
@@ -19,7 +19,6 @@ class Cliente:
         self.timeout = 2  # Timeout em segundos
         self.timer_threads = {}
         self.buffer_dados = []
-
 
     def enviar_handshake(self):
         handshake_msg = f"HANDSHAKE:PROTOCOL:{self.protocolo}:WINDOW:{self.janela}"
@@ -33,9 +32,6 @@ class Cliente:
             print("Falha no handshake. Encerrando conexão.")
             self.socket.close()
             exit()
-
-
-
 
     def carregar_dados(self):
         path = os.path.join(os.getcwd(), "carros.txt")
@@ -115,25 +111,52 @@ class Cliente:
             except Exception as e:
                 print(f"Erro ao receber resposta: {e}")
 
-    def iniciar_envio(self):
+    def iniciar_envio(self, modo_envio="unico"):
         self.carregar_dados()
         threading.Thread(target=self.receber_respostas, daemon=True).start()
 
-        for seq_num in range(1, self.num_mensagens + 1):
-            if seq_num not in self.acks_recebidos:
-                self.enviar_pacote(seq_num, self.buffer_dados[seq_num - 1])
-                self.iniciar_timer(seq_num)
+        if modo_envio == "unico":
+            # Perguntar ao usuário qual pacote ele deseja enviar
+            pacote_escolhido = int(input(f"Escolha o número do pacote que deseja enviar (1 a {self.num_mensagens}): "))
+            
+            if 1 <= pacote_escolhido <= self.num_mensagens:
+                seq_num = pacote_escolhido
+                if seq_num not in self.acks_recebidos:
+                    self.enviar_pacote(seq_num, self.buffer_dados[seq_num - 1])
+                    self.iniciar_timer(seq_num)
+                    while seq_num not in self.acks_recebidos:
+                        time.sleep(1)
+                    print(f"Pacote {seq_num} foi confirmado. Encerrando...")
+            else:
+                print(f"Pacote {pacote_escolhido} inválido. Não foi enviado nenhum pacote.")
 
-        while len(self.acks_recebidos) < self.num_mensagens:
-            time.sleep(1)
+        elif modo_envio == "rajada":
+            # Envio de múltiplos pacotes em rajada
+            pacotes_para_enviar = []
+            for seq_num in range(1, self.num_mensagens + 1):
+                if seq_num not in self.acks_recebidos:
+                    mensagem = self.buffer_dados[seq_num - 1]
+                    checksum = self.calcular_checksum(mensagem)
+                    pacote = f"SEND:{seq_num}:{mensagem}:{checksum}"
+                    pacotes_para_enviar.append(pacote)
 
-        print("Todos os pacotes foram confirmados. Encerrando...")
+            # Serializar todos os pacotes juntos separados por ";"
+            mensagem_em_rajada = ";".join(pacotes_para_enviar) + "\n"
+            try:
+                self.socket.sendall(mensagem_em_rajada.encode())
+                print(f"Enviado em rajada: {mensagem_em_rajada.strip()}")
+            except Exception as e:
+                print(f"Erro ao enviar pacotes em rajada: {e}")
+
+        print("Conexão encerrada.")
+        self.socket.close()  # Fecha a conexão com o servidor após o envio.
+
+
 
     def fechar_conexao(self):
-        print("Aguardando confirmação final dos ACKs...")
-        time.sleep(1)
+        """Fecha a conexão com o servidor"""
         self.socket.close()
-        print("Conexão encerrada.")
+        print("Conexão fechada.")
 
 def menu_cliente():
     host = input("Digite o endereço do servidor (127.0.0.1 por padrão): ") or "127.0.0.1"

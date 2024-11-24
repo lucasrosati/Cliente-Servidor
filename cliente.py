@@ -8,10 +8,10 @@ class Cliente:
     def __init__(self, host, port, prob_erro, janela, num_mensagens, protocolo):
         self.host = host
         self.port = port
-        self.prob_erro = prob_erro
-        self.janela = janela
-        self.num_mensagens = num_mensagens
-        self.protocolo = protocolo.upper()  # Adiciona o protocolo e converte para maiúsculo
+        self.prob_erro = prob_erro  # Probabilidade de erro nos pacotes
+        self.janela = janela  # Tamanho inicial da janela
+        self.num_mensagens = num_mensagens  # Número total de mensagens a enviar
+        self.protocolo = protocolo.upper()  # 'SR' ou 'GBN'
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((self.host, self.port))
         self.acks_recebidos = set()
@@ -19,7 +19,6 @@ class Cliente:
         self.timeout = 2  # Timeout em segundos
         self.timer_threads = {}
         self.buffer_dados = []
-
 
     def enviar_handshake(self):
         handshake_msg = f"HANDSHAKE:PROTOCOL:{self.protocolo}:WINDOW:{self.janela}"
@@ -33,9 +32,6 @@ class Cliente:
             print("Falha no handshake. Encerrando conexão.")
             self.socket.close()
             exit()
-
-
-
 
     def carregar_dados(self):
         path = os.path.join(os.getcwd(), "carros.txt")

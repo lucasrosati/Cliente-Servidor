@@ -5,8 +5,8 @@ class Servidor:
     def __init__(self, host, port, protocolo, cumulativo, tamanho_janela):
         self.host = host
         self.port = port
-        self.protocolo = protocolo  # 'SR' para Selective Repeat, 'GBN' para Go-Back-N
-        self.cumulativo = cumulativo  # Confirmação cumulativa (True/False)
+        self.protocolo = protocolo  # 'SR' (Selective Repeat) ou 'GBN' (Go-Back-N)
+        self.cumulativo = cumulativo  # True para confirmação cumulativa
         self.tamanho_janela = tamanho_janela  # Tamanho da janela de recepção
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -14,8 +14,8 @@ class Servidor:
         self.socket.listen(5)
         self.seq_esperado = 1
         self.mensagens_recebidas = {}
-        self.pacotes_fora_de_ordem = {}  # Armazena pacotes fora de ordem
-        self.janela_recepcao = list(range(1, self.tamanho_janela + 1))  # Janela inicial
+        self.pacotes_fora_de_ordem = {}
+        self.janela_recepcao = list(range(1, self.tamanho_janela + 1))
 
     def calcular_checksum(self, mensagem):
         return sum(ord(c) for c in mensagem) & 0xFFFF
@@ -54,7 +54,6 @@ class Servidor:
             self.enviar_ack(conn, seq_num)
             self.atualizar_janela()
 
-            # Processar pacotes fora de ordem armazenados
             while self.seq_esperado in self.pacotes_fora_de_ordem:
                 conteudo_fora = self.pacotes_fora_de_ordem.pop(self.seq_esperado)
                 print(f"Processando pacote fora de ordem: {self.seq_esperado} - {conteudo_fora}")
@@ -83,12 +82,9 @@ class Servidor:
             print("Erro ao processar a mensagem de handshake.")
             return None, None
 
-
-
     def receber_dados(self, conn):
         buffer = ""
 
-        # Validação do Handshake
         try:
             handshake_msg = conn.recv(1024).decode().strip()
             if handshake_msg.startswith("HANDSHAKE:"):
@@ -112,7 +108,6 @@ class Servidor:
             conn.close()
             return
 
-        # Processamento dos pacotes
         while True:
             try:
                 data = conn.recv(1024).decode()
@@ -129,8 +124,7 @@ class Servidor:
                         seq_num = int(seq_num_str)
                         checksum_recebido = int(checksum_recebido_str)
 
-                        print(f"Recebido {comando}:{seq_num}:{conteudo} "
-                            f"(Checksum recebido: {checksum_recebido})")
+                        print(f"Recebido {comando}:{seq_num}:{conteudo} (Checksum recebido: {checksum_recebido})")
 
                         if comando == "SEND":
                             self.processar_pacote(conn, seq_num, conteudo, checksum_recebido)
@@ -148,7 +142,6 @@ class Servidor:
         conn.close()
         print("Conexão encerrada pelo cliente.")
 
-
     def iniciar(self):
         print("Aguardando conexões...")
         while True:
@@ -158,6 +151,7 @@ class Servidor:
             client_thread.daemon = True
             client_thread.start()
 
+
 def menu_servidor():
     host = input("Digite o endereço do servidor (127.0.0.1 por padrão): ") or "127.0.0.1"
     port = int(input("Digite a porta do servidor (12346 por padrão): ") or 12346)
@@ -166,6 +160,7 @@ def menu_servidor():
     tamanho_janela = int(input("Digite o tamanho da janela de recepção (ex.: 5): "))
     servidor = Servidor(host, port, protocolo, cumulativo, tamanho_janela)
     servidor.iniciar()
+
 
 if __name__ == "__main__":
     menu_servidor()

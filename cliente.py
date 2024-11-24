@@ -8,10 +8,10 @@ class Cliente:
     def __init__(self, host, port, prob_erro, janela, num_mensagens, protocolo):
         self.host = host
         self.port = port
-        self.prob_erro = prob_erro
-        self.janela = janela
-        self.num_mensagens = num_mensagens
-        self.protocolo = protocolo.upper()  # Adiciona o protocolo e converte para maiúsculo
+        self.prob_erro = prob_erro  # Probabilidade de erro nos pacotes
+        self.janela = janela  # Tamanho inicial da janela
+        self.num_mensagens = num_mensagens  # Número total de mensagens a enviar
+        self.protocolo = protocolo.upper()  # 'SR' ou 'GBN'
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((self.host, self.port))
         self.acks_recebidos = set()
@@ -19,7 +19,6 @@ class Cliente:
         self.timeout = 2  # Timeout em segundos
         self.timer_threads = {}
         self.buffer_dados = []
-
 
     def enviar_handshake(self):
         handshake_msg = f"HANDSHAKE:PROTOCOL:{self.protocolo}:WINDOW:{self.janela}"
@@ -33,9 +32,6 @@ class Cliente:
             print("Falha no handshake. Encerrando conexão.")
             self.socket.close()
             exit()
-
-
-
 
     def carregar_dados(self):
         path = os.path.join(os.getcwd(), "carros.txt")
@@ -93,41 +89,70 @@ class Cliente:
                 while "\n" in buffer:
                     linha, buffer = buffer.split("\n", 1)
                     partes = linha.split(":")
-                    if len(partes) < 3:
+                    
+                    # Verifica se a resposta tem o formato esperado
+                    if len(partes) < 5:  # Formato esperado: TIPO:SEQ:WINDOW:CHECKSUM
+                        print(f"Resposta inválida ou incompleta: {linha}")
                         continue
-                    tipo, seq_num_str, checksum_str = partes
+                    
+                    tipo, seq_num_str, window_size_str, checksum_str = partes[:4]
                     seq_num = int(seq_num_str)
+                    tamanho_janela = int(window_size_str.split("WINDOW:")[-1])
                     checksum = int(checksum_str)
 
-                    esperado = f"{tipo}:{seq_num}"
+                    esperado = f"{tipo}:{seq_num}:WINDOW:{tamanho_janela}"
                     if self.calcular_checksum(esperado) == checksum:
                         if tipo == "ACK":
-                            print(f"Recebido ACK para pacote {seq_num}")
+                            print(f"Recebido ACK para pacote {seq_num}, janela: {tamanho_janela}")
                             self.acks_recebidos.add(seq_num)
                             self.cancelar_timer(seq_num)
                         elif tipo == "NAK":
-                            print(f"Recebido NAK para pacote {seq_num}, retransmitindo...")
+                            print(f"Recebido NAK para pacote {seq_num}, janela: {tamanho_janela}, retransmitindo...")
                             if seq_num not in self.acks_recebidos:
                                 self.enviar_pacote(seq_num, self.buffer_dados[seq_num - 1])
                                 self.iniciar_timer(seq_num)
                     else:
-                        print(f"Resposta corrompida: {linha}")
+                        print(f"Resposta corrompida ou checksum incorreto: {linha}")
             except Exception as e:
                 print(f"Erro ao receber resposta: {e}")
+
+
 
     def iniciar_envio(self):
         self.carregar_dados()
         threading.Thread(target=self.receber_respostas, daemon=True).start()
 
+        pacotes_para_enviar = []
         for seq_num in range(1, self.num_mensagens + 1):
             if seq_num not in self.acks_recebidos:
-                self.enviar_pacote(seq_num, self.buffer_dados[seq_num - 1])
+                mensagem = self.buffer_dados[seq_num - 1]
+                checksum = self.calcular_checksum(mensagem)
+                if random.random() < self.prob_erro:
+                    mensagem = f"ERR:{seq_num}:{mensagem[::-1]}:{checksum}"
+                    print(f"Simulando falha no pacote {seq_num}")
+                else:
+                    mensagem = f"SEND:{seq_num}:{mensagem}:{checksum}"
+                pacotes_para_enviar.append(mensagem)
+                self.dados_enviados[seq_num] = mensagem
+
+    # Enviar todos os pacotes de uma vez como uma rajada
+        try:
+            rajada = "\n".join(pacotes_para_enviar) + "\n"
+            self.socket.sendall(rajada.encode())
+            print(f"Rajada enviada: {rajada}")
+        except Exception as e:
+            print(f"Erro ao enviar rajada: {e}")
+
+        # Iniciar timers para cada pacote individualmente
+        for seq_num in range(1, self.num_mensagens + 1):
+            if seq_num not in self.acks_recebidos:
                 self.iniciar_timer(seq_num)
 
         while len(self.acks_recebidos) < self.num_mensagens:
             time.sleep(1)
 
         print("Todos os pacotes foram confirmados. Encerrando...")
+
 
     def fechar_conexao(self):
         print("Aguardando confirmação final dos ACKs...")

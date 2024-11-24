@@ -5,37 +5,39 @@ class Servidor:
     def __init__(self, host, port, protocolo, cumulativo, tamanho_janela):
         self.host = host
         self.port = port
-        self.protocolo = protocolo  # 'SR' para Selective Repeat, 'GBN' para Go-Back-N
-        self.cumulativo = cumulativo  # Confirmação cumulativa (True/False)
-        self.tamanho_janela = tamanho_janela  # Tamanho da janela de recepção
+        self.protocolo = protocolo
+        self.cumulativo = cumulativo
+        self.tamanho_janela = tamanho_janela
+        self.tamanho_atual_janela = tamanho_janela  # Inicialmente igual ao tamanho configurado
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((self.host, self.port))
         self.socket.listen(5)
         self.seq_esperado = 1
         self.mensagens_recebidas = {}
-        self.pacotes_fora_de_ordem = {}  # Armazena pacotes fora de ordem
-        self.janela_recepcao = list(range(1, self.tamanho_janela + 1))  # Janela inicial
+        self.pacotes_fora_de_ordem = {}
 
     def calcular_checksum(self, mensagem):
         return sum(ord(c) for c in mensagem) & 0xFFFF
 
     def atualizar_janela(self):
-        """Atualiza a janela de recepção dinamicamente com base no próximo pacote esperado."""
+        """Atualiza a janela dinamicamente com base nos pacotes processados."""
         while self.seq_esperado in self.mensagens_recebidas:
             self.seq_esperado += 1
-        self.janela_recepcao = list(range(self.seq_esperado, self.seq_esperado + self.tamanho_janela))
-        print(f"Janela de recepção atualizada: {self.janela_recepcao}")
+
+        pacotes_na_espera = len([p for p in self.pacotes_fora_de_ordem if self.seq_esperado <= p < self.seq_esperado + self.tamanho_janela])
+        self.tamanho_atual_janela = self.tamanho_janela - pacotes_na_espera
+        print(f"Janela de recepção atualizada. Tamanho atual: {self.tamanho_atual_janela}")
 
     def enviar_ack(self, conn, seq_num):
-        ack_data = f"ACK:{seq_num}"
+        ack_data = f"ACK:{seq_num}:WINDOW:{self.tamanho_atual_janela}"
         checksum = self.calcular_checksum(ack_data)
         ack = f"{ack_data}:{checksum}\n"
         conn.sendall(ack.encode())
         print(f"Enviado: {ack.strip()}")
 
     def enviar_nak(self, conn, seq_num):
-        nak_data = f"NAK:{seq_num}"
+        nak_data = f"NAK:{seq_num}:WINDOW:{self.tamanho_atual_janela}"
         checksum = self.calcular_checksum(nak_data)
         nak = f"{nak_data}:{checksum}\n"
         conn.sendall(nak.encode())
@@ -46,32 +48,29 @@ class Servidor:
 
         if checksum_recebido != checksum_calculado:
             print(f"Erro de checksum no pacote {seq_num}: {conteudo}")
-            if seq_num not in self.mensagens_recebidas:
-                self.enviar_nak(conn, seq_num)
+            self.enviar_nak(conn, seq_num)
         elif seq_num == self.seq_esperado:
             print(f"Pacote {seq_num} confirmado: {conteudo}")
             self.mensagens_recebidas[seq_num] = conteudo
             self.enviar_ack(conn, seq_num)
             self.atualizar_janela()
 
-            # Processar pacotes fora de ordem armazenados
             while self.seq_esperado in self.pacotes_fora_de_ordem:
                 conteudo_fora = self.pacotes_fora_de_ordem.pop(self.seq_esperado)
                 print(f"Processando pacote fora de ordem: {self.seq_esperado} - {conteudo_fora}")
                 self.mensagens_recebidas[self.seq_esperado] = conteudo_fora
                 self.enviar_ack(conn, self.seq_esperado)
                 self.atualizar_janela()
-        elif seq_num in self.janela_recepcao:
-            print(f"Pacote {seq_num} fora de ordem: {conteudo}. Dentro da janela: {self.janela_recepcao}")
+        elif seq_num < self.seq_esperado:
+            print(f"Pacote {seq_num} já recebido anteriormente: {conteudo}")
+            self.enviar_ack(conn, seq_num)
+        elif seq_num >= self.seq_esperado + self.tamanho_atual_janela:
+            print(f"Pacote {seq_num} fora da janela de recepção: {conteudo}. Tamanho da janela: {self.tamanho_atual_janela}")
+            self.enviar_nak(conn, seq_num)
+        else:
+            print(f"Pacote {seq_num} fora de ordem: {conteudo}. Dentro da janela.")
             self.pacotes_fora_de_ordem[seq_num] = conteudo
             self.enviar_nak(conn, self.seq_esperado)
-        else:
-            if seq_num < self.seq_esperado:
-                print(f"Pacote {seq_num} já recebido anteriormente: {conteudo}")
-                self.enviar_ack(conn, seq_num)
-            else:
-                print(f"Pacote {seq_num} fora da janela de recepção: {conteudo}. Esperado: {self.janela_recepcao}")
-                self.enviar_nak(conn, seq_num)
 
     def extrair_handshake(self, handshake_msg):
         try:
@@ -83,12 +82,7 @@ class Servidor:
             print("Erro ao processar a mensagem de handshake.")
             return None, None
 
-
-
     def receber_dados(self, conn):
-        buffer = ""
-
-        # Validação do Handshake
         try:
             handshake_msg = conn.recv(1024).decode().strip()
             if handshake_msg.startswith("HANDSHAKE:"):
@@ -112,7 +106,7 @@ class Servidor:
             conn.close()
             return
 
-        # Processamento dos pacotes
+        buffer = ""
         while True:
             try:
                 data = conn.recv(1024).decode()
@@ -129,8 +123,7 @@ class Servidor:
                         seq_num = int(seq_num_str)
                         checksum_recebido = int(checksum_recebido_str)
 
-                        print(f"Recebido {comando}:{seq_num}:{conteudo} "
-                            f"(Checksum recebido: {checksum_recebido})")
+                        print(f"Recebido {comando}:{seq_num}:{conteudo} (Checksum recebido: {checksum_recebido})")
 
                         if comando == "SEND":
                             self.processar_pacote(conn, seq_num, conteudo, checksum_recebido)
@@ -148,7 +141,6 @@ class Servidor:
         conn.close()
         print("Conexão encerrada pelo cliente.")
 
-
     def iniciar(self):
         print("Aguardando conexões...")
         while True:
@@ -158,6 +150,7 @@ class Servidor:
             client_thread.daemon = True
             client_thread.start()
 
+
 def menu_servidor():
     host = input("Digite o endereço do servidor (127.0.0.1 por padrão): ") or "127.0.0.1"
     port = int(input("Digite a porta do servidor (12346 por padrão): ") or 12346)
@@ -166,6 +159,7 @@ def menu_servidor():
     tamanho_janela = int(input("Digite o tamanho da janela de recepção (ex.: 5): "))
     servidor = Servidor(host, port, protocolo, cumulativo, tamanho_janela)
     servidor.iniciar()
+
 
 if __name__ == "__main__":
     menu_servidor()

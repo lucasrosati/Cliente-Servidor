@@ -5,9 +5,9 @@ class Servidor:
     def __init__(self, host, port, protocolo, cumulativo, tamanho_janela):
         self.host = host
         self.port = port
-        self.protocolo = protocolo  # 'SR' (Selective Repeat) ou 'GBN' (Go-Back-N)
-        self.cumulativo = cumulativo  # True para confirmação cumulativa
-        self.tamanho_janela = tamanho_janela  # Tamanho da janela de recepção
+        self.protocolo = protocolo
+        self.cumulativo = cumulativo
+        self.tamanho_janela = tamanho_janela
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((self.host, self.port))
@@ -15,6 +15,7 @@ class Servidor:
         self.seq_esperado = 1
         self.mensagens_recebidas = {}
         self.pacotes_fora_de_ordem = {}
+        self.tamanhoBuffer = 1024
         self.janela_recepcao = list(range(1, self.tamanho_janela + 1))
 
     def calcular_checksum(self, mensagem):
@@ -44,6 +45,14 @@ class Servidor:
     def processar_pacote(self, conn, seq_num, conteudo, checksum_recebido):
         checksum_calculado = self.calcular_checksum(conteudo)
 
+        if len(conteudo) > self.tamanhoBuffer:
+            print(f"Mensagem excede tamanho permitido ({self.tamanhoBuffer} bytes).")
+            erro_data = f"ERRO_TAMANHO:{seq_num}"
+            checksum = self.calcular_checksum(erro_data)
+            erro_mensagem = f"{erro_data}:{checksum}\n"
+            conn.sendall(erro_mensagem.encode())
+            print(f"Enviado: {erro_mensagem.strip()}")
+            return
         if checksum_recebido != checksum_calculado:
             print(f"Erro de checksum no pacote {seq_num}: {conteudo}")
             if seq_num not in self.mensagens_recebidas:
@@ -114,12 +123,9 @@ class Servidor:
                 if not data:
                     print("Cliente desconectado.")
                     break
-
                 buffer += data
                 while "\n" in buffer:
                     linha, buffer = buffer.split("\n", 1)
-
-                    # Se detectar pacotes em rajada, separa por ";"
                     if ";" in linha:
                         pacotes = linha.split(";")
                         for pacote in pacotes:
@@ -142,9 +148,7 @@ class Servidor:
             comando, seq_num_str, conteudo, checksum_recebido_str = partes
             seq_num = int(seq_num_str)
             checksum_recebido = int(checksum_recebido_str)
-
             print(f"Recebido {comando}:{seq_num}:{conteudo} (Checksum recebido: {checksum_recebido})")
-
             if comando == "SEND":
                 self.processar_pacote(conn, seq_num, conteudo, checksum_recebido)
             elif comando == "ERR":

@@ -8,15 +8,15 @@ class Cliente:
     def __init__(self, host, port, prob_erro, janela, num_mensagens, protocolo):
         self.host = host
         self.port = port
-        self.prob_erro = prob_erro  # Probabilidade de erro nos pacotes
-        self.janela = janela  # Tamanho inicial da janela
-        self.num_mensagens = num_mensagens  # Número total de mensagens a enviar
-        self.protocolo = protocolo.upper()  # 'SR' ou 'GBN'
+        self.prob_erro = prob_erro
+        self.janela = janela
+        self.num_mensagens = num_mensagens
+        self.protocolo = protocolo.upper()
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.connect((self.host, self.port))
         self.acks_recebidos = set()
         self.dados_enviados = {}
-        self.timeout = 2  # Timeout em segundos
+        self.timeout = 2
         self.timer_threads = {}
         self.buffer_dados = []
 
@@ -106,6 +106,10 @@ class Cliente:
                             if seq_num not in self.acks_recebidos:
                                 self.enviar_pacote(seq_num, self.buffer_dados[seq_num - 1])
                                 self.iniciar_timer(seq_num)
+                        elif tipo == "ERRO_TAMANHO":
+                            print(f"Erro de tamanho recebido para pacote {seq_num}. Não retransmitindo.")
+                            self.acks_recebidos.add(seq_num)
+                            self.cancelar_timer(seq_num)
                     else:
                         print(f"Resposta corrompida: {linha}")
             except Exception as e:
@@ -116,13 +120,11 @@ class Cliente:
         threading.Thread(target=self.receber_respostas, daemon=True).start()
 
         if modo_envio == "unico":
-            # Envio pacote por pacote
             for seq_num in range(1, self.num_mensagens + 1):
                 if seq_num not in self.acks_recebidos:
                     self.enviar_pacote(seq_num, self.buffer_dados[seq_num - 1])
                     self.iniciar_timer(seq_num)
         elif modo_envio == "rajada":
-            # Envio de múltiplos pacotes em rajada
             pacotes_para_enviar = []
             for seq_num in range(1, self.num_mensagens + 1):
                 if seq_num not in self.acks_recebidos:
@@ -131,7 +133,6 @@ class Cliente:
                     pacote = f"SEND:{seq_num}:{mensagem}:{checksum}"
                     pacotes_para_enviar.append(pacote)
 
-            # Serializar todos os pacotes juntos separados por ";"
             mensagem_em_rajada = ";".join(pacotes_para_enviar) + "\n"
             try:
                 self.socket.sendall(mensagem_em_rajada.encode())

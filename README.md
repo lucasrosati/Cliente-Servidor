@@ -82,6 +82,10 @@ Para alternar entre os modos, configure o protocolo no início da execução do 
 
 O checksum é calculado somando os valores ASCII de cada caractere da mensagem e aplicando a operação bitwise `& 0xFFFF` para limitar o valor a 16 bits. Ele é usado para verificar a integridade da mensagem. Se o checksum calculado não corresponder ao checksum recebido, o pacote será considerado corrompido e será solicitado um `NAK`.
 
+### Verificação de tamanho da mensagem
+
+O servidor verifica o tamanho do conteúdo de cada pacote recebido. Se o pacote exceder o tamanho permitido (self.tamanhoBuffer), o servidor exibe uma mensagem de aviso no console, indicando que o pacote ultrapassou o tamanho permitido e envia uma mensagem de erro para o cliente, composta pelo tipo de erro (ERRO_TAMANHO) e o número de sequência do pacote problemático. O checksum é calculado para garantir a integridade desta mensagem de erro.
+
 ### Relatório de Status
 
 No final da execução, o cliente exibe um relatório com:
